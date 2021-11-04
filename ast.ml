@@ -28,7 +28,7 @@ type literal =
 type expr =
   Lit of literal
 | Binop of expr * bop * expr
-| Unop of unop * expr
+| Unop of uop * expr
 | Range of expr * expr * expr
 
 (* Statements *)
@@ -38,7 +38,7 @@ type stmt =
 | FuncSign of string * string list 
 | FuncDecl of stmt * stmt
 | FuncCall of string list * stmt
-| Tdecl of string list * expr
+| Tdecl of string list * stmt
 | Return of string list
 | Break
 | Continue
@@ -79,7 +79,7 @@ let string_of_lit = function
 
 let rec string_of_expr = function
   Lit(l) -> string_of_lit l
-| Binop(e1, bop, e2) -> string_of_expr e1 ^ " " ^ string_of_bop bop ^ " " ^ string_of expr e2
+| Binop(e1, bop, e2) -> string_of_expr e1 ^ " " ^ string_of_bop bop ^ " " ^ string_of_expr e2
 | Unop(uop, e1) -> string_of_uop uop ^ " " ^ string_of_expr e1
 | Range(e1, e2, e3) -> string_of_expr e1 ^ ":" ^ string_of_expr e2 ^ ":" ^ string_of_expr e3
 
@@ -88,10 +88,10 @@ let concat l = List.fold_left (fun a b -> a ^ ", " ^ b) (List.hd l) (List.tl l)
 let rec string_of_stmt = function
   EmptyStmt -> ""
 | Expr(e1) -> string_of_expr e1
-| FuncSign(str1, str2) -> s1 ^ "(" ^ concat s2 ^ ")" ^ "\n"
+| FuncSign(str1, str2) -> str1 ^ "(" ^ concat str2 ^ ")" ^ "\n"
 | FuncDecl(s1, s2) -> "def " ^ string_of_stmt s1 ^ "{\n" ^ string_of_stmt s2 ^ "\n}\n"
 | FuncCall(str1, s1) ->  concat str1 ^ " = " ^ string_of_stmt s1
-| Tdecl(str1, e1) -> concat str1 ^ " = " string_of_expr e1 ^ "\n"
+| Tdecl(str1, s1) -> concat str1 ^ " = " ^ string_of_stmt s1 ^ "\n"
 | Return(str1) -> "return " ^ concat str1 ^ "\n"
 | Break -> "break\n"
 | Continue -> "continue\n"
@@ -101,3 +101,5 @@ let rec string_of_stmt = function
     | _ -> "if (" ^ string_of_stmt s1 ^ ")\n{\n" ^ string_of_stmt s2 ^ "} else {" ^ string_of_stmt s3 ^ "\n}\n"
 | ForStmt(str1, e1, s1) -> "for (" ^ str1 ^ " in " ^ string_of_expr e1 ^ ") {\n" ^ string_of_stmt s1 ^ "\n}\n"
 | WhileStmt(e1, s1) -> "while (" ^ string_of_expr e1 ^ ") {\n" ^ string_of_stmt s1 ^ "\n}\n"
+
+and string_of_program l = String.concat "" (List.map string_of_stmt l) ^ "\n\n"

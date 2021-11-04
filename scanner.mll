@@ -1,10 +1,9 @@
 {
-        open Parser;;
-        (* exception handler *)
+        open Parser
 }
 
-rule tokenizer = parse 
-  [' ' '\t'] { tokenizer lexbuf }
+rule tokenize = parse 
+  [' ' '\t'] { tokenize lexbuf }
 | ['\r' '\n'] { NEWLINE }
 
 (* comments *)
@@ -74,9 +73,9 @@ rule tokenizer = parse
 
 (* identifiers and literals *)
 (* TODO: work for negative sign? *)
-| ['0'-'9']+ as lit { INT_LITERAL(int_of_string list) }
+| ['0'-'9']+ as lit { INT_LITERAL(int_of_string lit) }
 | ['a'-'z''A'-'Z']['a'-'z''A'-'Z''0'-'9''_']* as id { IDENTIFIER(id) }
-| ['"' ([^ '"' ]*) '"'] as str { STRING_LITERAL(String.sub str 1 (String.length str) - 2) }
+| ('"'[^'"''\\']*('\\'_[^'"''\\']*)*'"') as str { STRING_LITERAL(String.sub str 1 (String.length str - 2)) }
 | (((['0'-'9']*)'.'(['0'-'9']+)('e'['-''+']?['0'-'9']+)?) | 
    ((['0'-'9']+)('e'['-''+']?['0'-'9']+)?)) as flt { FLOAT_LITERAL(float_of_string flt) }
 
@@ -84,9 +83,9 @@ rule tokenizer = parse
 
 
 and comment_line = parse 
- '\n' { tokenizer lexbuf }
+ '\n' { tokenize lexbuf }
 | _ { comment_line lexbuf }
 
 and comment_block = parse 
- "'''" { tokenizer lexbuf }
+ "'''" { tokenize lexbuf }
 | _ { comment_block lexbuf }
