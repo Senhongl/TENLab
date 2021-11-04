@@ -45,7 +45,7 @@ rule tokenize = parse
 
 (* delimiters *)
 | ',' { COMMA }
-| ':' { COLONS }
+| ':' { COLON }
 
 (* assignment *)
 | "=" { ASSIGNMENT }

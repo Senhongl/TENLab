@@ -10,7 +10,7 @@
 // parentheses and brackets
 %token LEFT_PARENTHESIS RIGHT_PARENTHESIS LEFT_CURLY_BRACKET RIGHT_CURLY_BRACKET LEFT_SQUARE_BRACKET RIGHT_SQUARE_BRACKET
 // delimiters
-%token COMMA COLONS
+%token COMMA COLON
 // assignment
 %token ASSIGNMENT
 // keywords
@@ -85,11 +85,6 @@ stmt:
 stmt_body:
 | NEWLINE stmt_body { $2 }
 | LEFT_CURLY_BRACKET stmts RIGHT_CURLY_BRACKET { $2 }
-// | stmts stmt_body { $1 }
-// | NEWLINE stmt_body { $2 }
-// | stmt_body NEWLINE { $1 }
-// | LEFT_CURLY_BRACKET stmt_body { $2 }
-// | stmt_body RIGHT_CURLY_BRACKET { $1 }
 
 
 /***************************************************************************************
