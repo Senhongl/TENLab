@@ -1,4 +1,4 @@
-all: tenlab.out
+all: tenlab.out clean
 
 tenlab : ast.cmo parser.cmo scanner.cmo tenlab.cmo
 	ocamlc -w A -o tenlab $^
@@ -25,3 +25,9 @@ parser.cmo : ast.cmo parser.cmi
 parser.cmx : ast.cmo parser.cmi
 scanner.cmo : parser.cmi
 scanner.cmx : parser.cmx
+
+clean:
+	rm -rf *.cmi *.cmo
+	rm -rf parser.ml parser.mli
+	rm -rf scanner.ml
+	rm -rf tenlab
