@@ -43,7 +43,7 @@
 %%
 
 main:
-  stmts EOF { List.rev $1 }
+  stmts EOF { $1 }
 
 
 /***************************************************************************************
@@ -52,8 +52,8 @@ main:
 
 stmts:
 | { [] }
-| NEWLINE stmt { [$2] }
-| stmts stmt { $2::$1 }
+| NEWLINE stmts { $2 }
+| stmt stmts { $1::$2 }
 
 /*
  * A TENLab file should consis of a bunch of statements.
@@ -77,17 +77,19 @@ stmt:
 | BREAK { Break }
 | CONTINUE { Continue }
 | EXIT { Exit }
-| IF LEFT_PARENTHESIS stmt RIGHT_PARENTHESIS stmt_body %prec NOELSE { IfStmt($3, $5, EmptyStmt) }
+| IF LEFT_PARENTHESIS stmt RIGHT_PARENTHESIS stmt_body %prec NOELSE { IfStmt($3, $5, [EmptyStmt]) }
 | IF LEFT_PARENTHESIS stmt RIGHT_PARENTHESIS stmt_body ELSE stmt_body { IfStmt($3, $5, $7) }
 | FOR LEFT_PARENTHESIS IDENTIFIER IN expr RIGHT_PARENTHESIS stmt_body { ForStmt($3, $5, $7) }
 | WHILE LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt_body { WhileStmt($3, $5) }
 
 stmt_body:
-| stmt { $1 }
 | NEWLINE stmt_body { $2 }
-| stmt_body NEWLINE { $1 }
-| LEFT_CURLY_BRACKET stmt_body { $2 }
-| stmt_body RIGHT_CURLY_BRACKET { $1 }
+| LEFT_CURLY_BRACKET stmts RIGHT_CURLY_BRACKET { $2 }
+// | stmts stmt_body { $1 }
+// | NEWLINE stmt_body { $2 }
+// | stmt_body NEWLINE { $1 }
+// | LEFT_CURLY_BRACKET stmt_body { $2 }
+// | stmt_body RIGHT_CURLY_BRACKET { $1 }
 
 
 /***************************************************************************************
