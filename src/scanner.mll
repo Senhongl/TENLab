@@ -2,7 +2,7 @@
         open Parser
 }
 
-rule tokenize = parse 
+rule tokenize = parse
   [' ' '\t'] { tokenize lexbuf }
 | ['\r' '\n'] { NEWLINE }
 
@@ -71,21 +71,30 @@ rule tokenize = parse
 (* TODO: | "cat" { CAT }
 | "shape" { SHAPE } *)
 
+(* Parallel Environment keywords *)
+| "parallel_define" { PARALLEL_DEFINE }
+| "overload" { OVERLOAD }
+| "map" { MAP }
+| "reduce" { REDUCE }
+
+(* Operator Names *)
+| "__"['*''+''-']"__" as oname { OPERATOR_INDICATOR(oname) }
+
 (* identifiers and literals *)
 (* TODO: work for negative sign? *)
 | ['0'-'9']+ as lit { INT_LITERAL(int_of_string lit) }
 | ['a'-'z''A'-'Z']['a'-'z''A'-'Z''0'-'9''_']* as id { IDENTIFIER(id) }
 | ('"'[^'"''\\']*('\\'_[^'"''\\']*)*'"') as str { STRING_LITERAL(String.sub str 1 (String.length str - 2)) }
-| (((['0'-'9']*)'.'(['0'-'9']+)('e'['-''+']?['0'-'9']+)?) | 
+| (((['0'-'9']*)'.'(['0'-'9']+)('e'['-''+']?['0'-'9']+)?) |
    ((['0'-'9']+)('e'['-''+']?['0'-'9']+)?)) as flt { FLOAT_LITERAL(float_of_string flt) }
 
 | eof { EOF }
 
 
-and comment_line = parse 
+and comment_line = parse
  '\n' { tokenize lexbuf }
 | _ { comment_line lexbuf }
 
-and comment_block = parse 
+and comment_block = parse
  "'''" { tokenize lexbuf }
 | _ { comment_block lexbuf }
