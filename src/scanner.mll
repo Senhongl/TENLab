@@ -71,6 +71,25 @@ rule tokenize = parse
 (* TODO: | "cat" { CAT }
 | "shape" { SHAPE } *)
 
+(* build-in function*)
+| "any" {ANY}
+| "all" {ALL}
+| "sum" {SUM}
+| "ones" {ONES}
+| "zeros" {LEN}
+| "int_of" {INT_OF}
+| "float_of" {FLOAT_OF}
+| "floor" {FLOOR}
+| "ceil" {CEIL}
+| "round" {ROUND}
+| "abs" {ABS}
+| "log" {LOG} 
+| "inverse" {INVERSE}
+| "solve" {SOLVE}
+| "svd" {SVD}
+| "eig" {EIG}
+| "eign" {EIGV}
+
 (* identifiers and literals *)
 (* TODO: work for negative sign? *)
 | ['0'-'9']+ as lit { INT_LITERAL(int_of_string lit) }
@@ -80,6 +99,9 @@ rule tokenize = parse
    ((['0'-'9']+)('e'['-''+']?['0'-'9']+)?)) as flt { FLOAT_LITERAL(float_of_string flt) }
 
 | eof { EOF }
+
+(* handle illegal character*)
+| _ as char {raise (Failure("illegal character " ^ Char.escaped ch))}
 
 
 and comment_line = parse 
