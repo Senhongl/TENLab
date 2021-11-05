@@ -81,8 +81,8 @@ stmt:
 | BREAK { Break }
 | CONTINUE { Continue }
 | EXIT { Exit }
-| IF LEFT_PARENTHESIS stmt RIGHT_PARENTHESIS stmt_body %prec NOELSE { IfStmt($3, $5, [EmptyStmt]) }
-| IF LEFT_PARENTHESIS stmt RIGHT_PARENTHESIS stmt_body ELSE stmt_body { IfStmt($3, $5, $7) }
+| IF LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt_body %prec NOELSE { IfStmt($3, $5, [EmptyStmt]) }
+| IF LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt_body ELSE stmt_body { IfStmt($3, $5, $7) }
 | FOR LEFT_PARENTHESIS IDENTIFIER IN expr RIGHT_PARENTHESIS stmt_body { ForStmt($3, $5, $7) }
 | WHILE LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt_body { WhileStmt($3, $5) }
 

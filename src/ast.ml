@@ -61,7 +61,7 @@ type stmt =
 | Break
 | Continue
 | Exit
-| IfStmt of stmt * stmt list * stmt list
+| IfStmt of expr * stmt list * stmt list
 | ForStmt of string * expr * stmt list
 | WhileStmt of expr * stmt list
 
