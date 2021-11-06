@@ -30,6 +30,7 @@
 %nonassoc COMMA
 %nonassoc NOELSE
 // does parentheses or brackets matter?
+%left RETURN
 %right ASSIGNMENT
 %left OR
 %left AND
@@ -102,17 +103,6 @@ exprs:
 params:
 | IDENTIFIER { [$1] }
 | IDENTIFIER COMMA params { $1 :: $3 }
-
-/*
-
-param:
-// the list of params could either be a list of id or a list of expr
-  IDENTIFIER { [$1] }
-| IDENTIFIER COMMA param { $1 :: $3 }
-// TODO: support a list of expr? *)
-// | expr COMMA expr { $3::$1 }
-
-*/
 
 /***************************************************************************************
                     Parallel Environment
@@ -215,6 +205,6 @@ expr:
 | SVD LEFT_PARENTHESIS expr RIGHT_PARENTHESIS { Svd($3) }
 | EIG LEFT_PARENTHESIS expr RIGHT_PARENTHESIS { Eig($3) }
 | EIGV LEFT_PARENTHESIS expr RIGHT_PARENTHESIS { Eigv($3) }
-
+// function call
 | func_call { $1 }
 | IDENTIFIER ASSIGNMENT expr { Assign($1, $3) }
