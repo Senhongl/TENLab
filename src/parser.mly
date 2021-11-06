@@ -15,12 +15,12 @@
 %token ASSIGNMENT
 // keywords
 // TODO: support special keywords, e.g., read, print, shape, cat
-// TODO: string or char? 
-%token IF ELIF ELSE FOR WHILE IN CONTINUE BREAK RETURN EXIT DEFINE INT FLOAT STRING
-
 // build-in functions
 %token ANY ALL SUM ONES ZEROS LEN INT_OF FLOAT_OF FLOOR CEIL ROUND ABS LOG INVERSE SOLVE SVD EIG EIGV
 
+// TODO: string or char?
+%token IF ELIF ELSE FOR WHILE IN CONTINUE BREAK RETURN EXIT DEFINE INT FLOAT STRING PARALLEL_DEFINE OVERLOAD MAP REDUCE RETURN
+%token <string> OPERATOR_INDICATOR
 %token <int> INT_LITERAL
 %token <string> STRING_LITERAL
 %token <float> FLOAT_LITERAL
@@ -60,12 +60,12 @@ stmts:
 | stmt stmts { $1::$2 }
 
 /*
- * A TENLab file should consis of a bunch of statements.
+ * A TENLab file should consist of a bunch of statements.
  * Here we define all the possible statements:
  * (i)    a function declaration or function call
  * (ii)   an exprssion inside/outside the body of function
  * (iii)  tensor declaration or assignment
- * (iv)   a return/break/continue/exit statement 
+ * (iv)   a return/break/continue/exit statement
  * (v)    if statement/if-else statement
  * (vi)   TODO: if-elif statement
  * (vii)  for statement
@@ -73,10 +73,9 @@ stmts:
  * (ix)   TODO: more statments, e.g., built-in function?
  */
 stmt:
+| PARALLEL_DEFINE IDENTIFIER pe_body { PEDecl($2, $3) }
 | DEFINE func_signature stmt_body { FuncDecl($2, $3) }
-| func_call { $1 }
 | expr { Expr($1) }
-| params ASSIGNMENT stmt { Tdecl($1, $3) } 
 | RETURN params { Return($2) }
 | BREAK { Break }
 | CONTINUE { Continue }
@@ -99,23 +98,77 @@ func_signature: IDENTIFIER LEFT_PARENTHESIS params RIGHT_PARENTHESIS { FuncSign(
 
 /* We support the following form of function call:
  *      (i)  call the function directly
- *      (ii) call the function and assign the return value to variable(s) 
+ *      (ii) call the function and assign the return value to variable(s)
  */
 // TODO: support a, b = foo(), foo()? *)
-func_call: 
-| func_signature { $1 }
-| params ASSIGNMENT func_call { FuncCall($1, $3) }
+func_call: IDENTIFIER LEFT_PARENTHESIS exprs RIGHT_PARENTHESIS { FuncCall($1, $3) }
+
+exprs:
+| expr COMMA exprs { $1 :: $3 }
+| expr { [$1] }
 
 params:
-  { [] }
-| param {List.rev $1 }
+| IDENTIFIER COMMA params { $1 :: $3 }
+| IDENTIFIER { [$1] }
+
+
+/*
 
 param:
 // the list of params could either be a list of id or a list of expr
   IDENTIFIER { [$1] }
 | IDENTIFIER COMMA param { $1 :: $3 }
 // TODO: support a list of expr? *)
-// | expr COMMA expr { $2::$1 }
+// | expr COMMA expr { $3::$1 }
+
+*/
+
+/***************************************************************************************
+                    Parallel Environment
+ ***************************************************************************************/
+
+pe_body:
+| NEWLINE pe_body { $2 }
+| LEFT_CURLY_BRACKET po_defs RIGHT_CURLY_BRACKET { $2 }
+
+po_def_head: OVERLOAD OPERATOR_INDICATOR LEFT_PARENTHESIS params RIGHT_PARENTHESIS { POSign($2, $4) } // PO:paralleled operator
+
+po_defs:
+| NEWLINE po_defs { $2 }
+| po_def po_defs { $1 :: $2 }
+| { [] }
+
+po_def:
+| po_def NEWLINE { $1 }
+| po_def_head po_def_body { ParallelOperator($1, $2) }
+
+po_def_body:
+| NEWLINE po_def_body { $2 }
+| LEFT_CURLY_BRACKET mr_funcs RIGHT_CURLY_BRACKET { $2 }
+
+mr_funcs: map_funcs REDUCE reduce_body { MapReduce($1, $3) }
+
+map_funcs:
+| NEWLINE map_funcs { $2 }
+| map_func map_funcs { $1 :: $2 }
+| { [] }
+
+map_func: MAP IDENTIFIER map_body { Map($2, $3) }
+
+map_body:
+| NEWLINE map_body { $2 }
+| map_body NEWLINE { $1 }
+| LEFT_CURLY_BRACKET stmts mr_return RIGHT_CURLY_BRACKET { Mapfunc($2, $3) }
+
+reduce_body:
+| NEWLINE reduce_body { $2 }
+| reduce_body NEWLINE { $1 }
+| LEFT_CURLY_BRACKET stmts mr_return RIGHT_CURLY_BRACKET { Reducefunc($2, $3) }
+
+mr_return:
+| mr_return NEWLINE { $1 }
+| RETURN expr { $2 }
+
 
 /***************************************************************************************
                 Tensor Declaration & Assignment
@@ -130,7 +183,7 @@ param:
 // TODO: support A, B = 1, 2?
 // | expr { [$1] }
 // | expr COMMA tdecl { $2::$1 }
-// | params ASSIGNMENT expr { Tdecl($1, $3) } 
+// | params ASSIGNMENT expr { Tdecl($1, $3) }
 
 
 /***************************************************************************************
@@ -141,7 +194,8 @@ expr:
 | INT_LITERAL { Lit(IntLit($1)) }
 | FLOAT_LITERAL { Lit(FloatLit($1)) }
 | STRING_LITERAL { Lit(StringLit($1)) }
-| IDENTIFIER { Lit(StringLit($1)) }
+// Indentifier
+| IDENTIFIER { ID($1) }
 // Binary expression
 | expr PLUS expr { Binop($1, Add, $3) }
 | expr SUBTRACT expr { Binop($1, Sub, $3) }
@@ -166,7 +220,7 @@ expr:
 | expr TRANSPOSE { Unop(Transpose, $1) }
 // A special expression, numerical range. *)
 /* TODO: it only support the numerical initialization, i.e., 0:3:1.
- *       however, we might want to support 0:shape(A):1. 
+ *       however, we might want to support 0:shape(A):1.
  */
 | expr COLON expr COLON expr { Range($1, $3, $5) }
 | ANY LEFT_PARENTHESIS expr RIGHT_PARENTHESIS { Any($3) }
@@ -187,3 +241,6 @@ expr:
 | SVD LEFT_PARENTHESIS expr RIGHT_PARENTHESIS { Svd($3) }
 | EIG LEFT_PARENTHESIS expr RIGHT_PARENTHESIS { Eig($3) }
 | EIGV LEFT_PARENTHESIS expr RIGHT_PARENTHESIS { Eigv($3) }
+
+| func_call { $1 }
+| IDENTIFIER ASSIGNMENT expr { Assign($1, $3) }
