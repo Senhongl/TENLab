@@ -16,7 +16,7 @@
 // keywords
 // TODO: support special keywords, e.g., read, print, shape, cat
 // build-in functions
-%token ANY ALL SUM ONES ZEROS LEN INT_OF FLOAT_OF FLOOR CEIL ROUND ABS LOG INVERSE SOLVE SVD EIG EIGV
+%token ANY ALL SUM ONES ZEROS LEN INT_OF FLOAT_OF FLOOR CEIL ROUND ABS LOG INVERSE SOLVE SVD EIG EIGV PRINT SHAPE CAT
 
 // TODO: string or char?
 %token IF ELIF ELSE FOR WHILE IN CONTINUE BREAK RETURN EXIT DEFINE INT FLOAT STRING PARALLEL_DEFINE OVERLOAD MAP REDUCE RETURN
@@ -29,7 +29,6 @@
 %nonassoc COLON
 %nonassoc COMMA
 %nonassoc NOELSE
-// does parentheses or brackets matter?
 %left RETURN
 %right ASSIGNMENT
 %left OR
@@ -187,6 +186,10 @@ expr:
 | CONTINUE { Continue }
 | EXIT { Exit }
 // built-in functions
+// TODO: necessary to do the syntax check?
+| PRINT LEFT_PARENTHESIS expr RIGHT_PARENTHESIS { PRINT($3) }
+| SHAPE LEFT_PARENTHESIS expr RIGHT_PARENTHESIS { SHAPE($3) }
+| CAT LEFT_PARENTHESIS expr COMMA expr RIGHT_PARENTHESIS { CAT($3, $5) }
 | ANY LEFT_PARENTHESIS expr RIGHT_PARENTHESIS { Any($3) }
 | ALL LEFT_PARENTHESIS expr RIGHT_PARENTHESIS { All($3) }
 | SUM LEFT_PARENTHESIS expr RIGHT_PARENTHESIS { Sum($3) }
