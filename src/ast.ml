@@ -21,18 +21,22 @@ type literal =
 | FloatLit of float
 | StringLit of string
 
-(* TODO: support User-Defined Parallel function *)
-
 type operator_name =
   AddSymbol
 | MinusSymbol
 | MulSymbol
 
-
 (* TODO: support tensor! not just 0-dim data *)
 (* TODO: support function call *)
 type expr =
   Lit of literal
+| Elements of expr list
+| IntTensor of expr
+| FloatTensor of expr
+| VarTensor of expr
+| ConcatTensor of expr * expr
+| OpenTensor of expr
+| CloseTensor of expr
 | Binop of expr * bop * expr
 | Unop of uop * expr
 | Range of expr * expr * expr
@@ -115,7 +119,7 @@ let string_of_uop = function
 let string_of_lit = function
   IntLit(l) -> string_of_int l
 | FloatLit(l) -> string_of_float l
-| StringLit(l) -> l
+| StringLit(l) -> "\"" ^ l ^ "\""
 
 let rec string_of_expr = function
   Lit(l) -> string_of_lit l
@@ -148,6 +152,14 @@ let rec string_of_expr = function
 | Eigv(e1) -> "Eigv (" ^ string_of_expr e1 ^ ")"
 | FuncCall(str1, e1) -> (str1 ^ " = " ^ (String.concat "," (List.map string_of_expr e1)))
 | Assign(str1, e1) -> (str1 ^ " = " ^ string_of_expr e1)
+
+| Elements(e1) -> String.concat "," (List.map string_of_expr e1)
+| OpenTensor(e1) -> "[" ^ string_of_expr e1
+| CloseTensor(e1) -> string_of_expr e1 ^ "]"
+| ConcatTensor(e1, e2) -> string_of_expr e1 ^ ";" ^ string_of_expr e2
+| IntTensor(e1) -> "int(" ^ string_of_expr e1 ^ ")"
+| FloatTensor(e1) -> "float(" ^ string_of_expr e1 ^ ")"
+| VarTensor(e1) -> "var(" ^ string_of_expr e1 ^ ")"
 
 let rec string_of_stmt = function
   EmptyStmt -> ""

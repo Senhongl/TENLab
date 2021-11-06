@@ -66,6 +66,7 @@ rule tokenize = parse
 | "def" { DEFINE }
 | "int" { INT }
 | "float" { FLOAT }
+| "var" { VAR }
 (* TODO: string or char? do we need to support these two keywords? *)
 (* TODO: | "var" { VOID_TENSOR } *)
 (* TODO: | "cat" { CAT }

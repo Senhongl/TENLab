@@ -1,19 +1,4 @@
-para_def EnvironmentTest{
-ol __+__ (x,y) 
-z = x + y
-,return z
-
-
-,z = e + f
-,return z
-
-
-
-s = 1 + 2
-,return s
-
-
-}
+var(["hello",1])
 
 
 

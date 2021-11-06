@@ -1,16 +1,1 @@
-parallel_define EnvironmentTest {
-    overload __+__ (x, y) {
-        map f1 {
-            z = x + y;
-            return z;
-        }
-        map f2 {
-            z = e + f;
-            return z;
-        }
-        reduce {
-            s = 1 + 2;
-            return s;
-        }
-    }
-}
+var(["hello", 1]);

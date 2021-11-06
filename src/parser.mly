@@ -19,13 +19,16 @@
 %token ANY ALL SUM ONES ZEROS LEN INT_OF FLOAT_OF FLOOR CEIL ROUND ABS LOG INVERSE SOLVE SVD EIG EIGV PRINT SHAPE CAT
 
 // TODO: string or char?
-%token IF ELIF ELSE FOR WHILE IN CONTINUE BREAK RETURN EXIT DEFINE INT FLOAT STRING PARALLEL_DEFINE OVERLOAD MAP REDUCE RETURN
+%token IF ELIF ELSE FOR WHILE IN CONTINUE BREAK RETURN EXIT DEFINE INT FLOAT STRING VAR PARALLEL_DEFINE OVERLOAD MAP REDUCE RETURN
 %token <string> OPERATOR_INDICATOR
 %token <int> INT_LITERAL
 %token <string> STRING_LITERAL
 %token <float> FLOAT_LITERAL
 %token <string> IDENTIFIER
 
+%left SEP
+%nonassoc RIGHT_SQUARE_BRACKET  RIGHT_PARENTHESIS
+%nonassoc LEFT_SQUARE_BRACKET LEFT_PARENTHESIS
 %nonassoc COLON
 %nonassoc COMMA
 %nonassoc NOELSE
@@ -150,10 +153,15 @@ reduce_func: REDUCE LEFT_CURLY_BRACKET stmts RIGHT_CURLY_BRACKET { ReduceFunc($3
         All possible expressions, including binary expression and unary expression
  ***************************************************************************************/
 expr:
-// Primitive data type
+// 0-dim data type
 | INT_LITERAL { Lit(IntLit($1)) }
 | FLOAT_LITERAL { Lit(FloatLit($1)) }
 | STRING_LITERAL { Lit(StringLit($1)) }
+// multi-dim data type
+// TODO: String tensor?
+| INT LEFT_PARENTHESIS tensor RIGHT_PARENTHESIS { IntTensor($3) }
+| FLOAT LEFT_PARENTHESIS tensor RIGHT_PARENTHESIS { FloatTensor($3) }
+| VAR LEFT_PARENTHESIS tensor RIGHT_PARENTHESIS { VarTensor($3) }
 // Indentifier
 | IDENTIFIER { Lit(StringLit($1)) }
 // Binary expression
@@ -211,3 +219,13 @@ expr:
 // function call
 | func_call { $1 }
 | IDENTIFIER ASSIGNMENT expr { Assign($1, $3) }
+
+elements:
+  expr { [$1] }
+| expr COMMA elements { $1::$3 }
+
+tensor:
+| elements { Elements($1) }
+| LEFT_SQUARE_BRACKET tensor { OpenTensor($2) }
+| tensor RIGHT_SQUARE_BRACKET { CloseTensor($1) }
+| tensor SEP tensor { ConcatTensor($1, $3) }
