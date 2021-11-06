@@ -3,8 +3,8 @@
 }
 
 rule tokenize = parse
-  [' ' '\t'] { tokenize lexbuf }
-| ['\r' '\n'] { NEWLINE }
+  [' ' '\t' '\r' '\n'] { tokenize lexbuf }
+| [';'] { SEP }
 
 (* comments *)
 | '#' { comment_line lexbuf }
@@ -109,7 +109,7 @@ rule tokenize = parse
 | eof { EOF }
 
 (* handle illegal character*)
-| _ as char {raise (Failure("illegal character " ^ Char.escaped ch))}
+| _ as ch {raise (Failure("illegal character " ^ Char.escaped ch))}
 
 
 and comment_line = parse

@@ -1,6 +1,6 @@
 %{ open Ast %}
 
-%token NEWLINE EOF
+%token SEP EOF
 // arithmetic operators
 %token PLUS SUBTRACT MULTIPLICATION DOT_MULTIPLICATION DIVIDE POWER DOT_POWER TRANSPOSE MOD FLOOR_DIVIDE NEG
 // relational operators
@@ -54,9 +54,8 @@ main:
                                 Statements
  ***************************************************************************************/
 
-stmts:
+stmts: 
 | { [] }
-| NEWLINE stmts { $2 }
 | stmt stmts { $1::$2 }
 
 /*
@@ -73,22 +72,15 @@ stmts:
  * (ix)   TODO: more statments, e.g., built-in function?
  */
 stmt:
+| expr SEP { Expr($1) }
 | PARALLEL_DEFINE IDENTIFIER pe_body { PEDecl($2, $3) }
 | DEFINE func_signature stmt_body { FuncDecl($2, $3) }
-| expr { Expr($1) }
-| RETURN params { Return($2) }
-| BREAK { Break }
-| CONTINUE { Continue }
-| EXIT { Exit }
 | IF LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt_body %prec NOELSE { IfStmt($3, $5, [EmptyStmt]) }
 | IF LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt_body ELSE stmt_body { IfStmt($3, $5, $7) }
 | FOR LEFT_PARENTHESIS IDENTIFIER IN expr RIGHT_PARENTHESIS stmt_body { ForStmt($3, $5, $7) }
 | WHILE LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt_body { WhileStmt($3, $5) }
 
-stmt_body:
-| NEWLINE stmt_body { $2 }
-| LEFT_CURLY_BRACKET stmts RIGHT_CURLY_BRACKET { $2 }
-
+stmt_body: LEFT_CURLY_BRACKET stmts RIGHT_CURLY_BRACKET { $2 }
 
 /***************************************************************************************
                         Function Call
@@ -104,13 +96,12 @@ func_signature: IDENTIFIER LEFT_PARENTHESIS params RIGHT_PARENTHESIS { FuncSign(
 func_call: IDENTIFIER LEFT_PARENTHESIS exprs RIGHT_PARENTHESIS { FuncCall($1, $3) }
 
 exprs:
-| expr COMMA exprs { $1 :: $3 }
 | expr { [$1] }
+| expr COMMA exprs { $1 :: $3 }
 
 params:
-| IDENTIFIER COMMA params { $1 :: $3 }
 | IDENTIFIER { [$1] }
-
+| IDENTIFIER COMMA params { $1 :: $3 }
 
 /*
 
@@ -127,47 +118,27 @@ param:
                     Parallel Environment
  ***************************************************************************************/
 
-pe_body:
-| NEWLINE pe_body { $2 }
-| LEFT_CURLY_BRACKET po_defs RIGHT_CURLY_BRACKET { $2 }
+pe_body: LEFT_CURLY_BRACKET po_defs RIGHT_CURLY_BRACKET { $2 }
 
 po_def_head: OVERLOAD OPERATOR_INDICATOR LEFT_PARENTHESIS params RIGHT_PARENTHESIS { POSign($2, $4) } // PO:paralleled operator
 
 po_defs:
-| NEWLINE po_defs { $2 }
+| po_def { [$1] }
 | po_def po_defs { $1 :: $2 }
-| { [] }
 
-po_def:
-| po_def NEWLINE { $1 }
-| po_def_head po_def_body { ParallelOperator($1, $2) }
+po_def: po_def_head po_def_body { ParallelOperator($1, $2) }
 
-po_def_body:
-| NEWLINE po_def_body { $2 }
-| LEFT_CURLY_BRACKET mr_funcs RIGHT_CURLY_BRACKET { $2 }
+po_def_body: LEFT_CURLY_BRACKET mr_funcs RIGHT_CURLY_BRACKET { $2 }
 
-mr_funcs: map_funcs REDUCE reduce_body { MapReduce($1, $3) }
+mr_funcs: map_funcs reduce_func { MapReduce($1, $2) }
 
 map_funcs:
-| NEWLINE map_funcs { $2 }
+| map_func { [$1] }
 | map_func map_funcs { $1 :: $2 }
-| { [] }
 
-map_func: MAP IDENTIFIER map_body { Map($2, $3) }
+map_func: MAP IDENTIFIER LEFT_CURLY_BRACKET stmts RIGHT_CURLY_BRACKET { MapFunc($4) }
 
-map_body:
-| NEWLINE map_body { $2 }
-| map_body NEWLINE { $1 }
-| LEFT_CURLY_BRACKET stmts mr_return RIGHT_CURLY_BRACKET { Mapfunc($2, $3) }
-
-reduce_body:
-| NEWLINE reduce_body { $2 }
-| reduce_body NEWLINE { $1 }
-| LEFT_CURLY_BRACKET stmts mr_return RIGHT_CURLY_BRACKET { Reducefunc($2, $3) }
-
-mr_return:
-| mr_return NEWLINE { $1 }
-| RETURN expr { $2 }
+reduce_func: REDUCE LEFT_CURLY_BRACKET stmts RIGHT_CURLY_BRACKET { ReduceFunc($3) }
 
 
 /***************************************************************************************
@@ -195,7 +166,7 @@ expr:
 | FLOAT_LITERAL { Lit(FloatLit($1)) }
 | STRING_LITERAL { Lit(StringLit($1)) }
 // Indentifier
-| IDENTIFIER { ID($1) }
+| IDENTIFIER { Lit(StringLit($1)) }
 // Binary expression
 | expr PLUS expr { Binop($1, Add, $3) }
 | expr SUBTRACT expr { Binop($1, Sub, $3) }
@@ -219,10 +190,13 @@ expr:
 | NEG expr { Unop(Neg, $2) }
 | expr TRANSPOSE { Unop(Transpose, $1) }
 // A special expression, numerical range. *)
-/* TODO: it only support the numerical initialization, i.e., 0:3:1.
- *       however, we might want to support 0:shape(A):1.
- */
 | expr COLON expr COLON expr { Range($1, $3, $5) }
+// keyword expressions
+| RETURN expr { Return($2) }
+| BREAK { Break }
+| CONTINUE { Continue }
+| EXIT { Exit }
+// built-in functions
 | ANY LEFT_PARENTHESIS expr RIGHT_PARENTHESIS { Any($3) }
 | ALL LEFT_PARENTHESIS expr RIGHT_PARENTHESIS { All($3) }
 | SUM LEFT_PARENTHESIS expr RIGHT_PARENTHESIS { Sum($3) }
