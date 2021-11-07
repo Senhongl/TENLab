@@ -46,9 +46,9 @@ type expr =
 | Continue
 | Exit
 (* Built-in functions *)
-| PRINT of expr
-| SHAPE of expr
-| CAT of expr * expr
+| Print of expr
+| Shape of expr
+| Cat of expr * expr
 | Any of expr
 | All of expr
 | Sum of expr
@@ -130,9 +130,9 @@ let rec string_of_expr = function
 | Break -> "break\n"
 | Continue -> "continue\n"
 | Exit -> "exit\n"
-| PRINT(e1) -> "print(" ^ string_of_expr e1 ^ ")"
-| SHAPE(e1) -> "shape(" ^ string_of_expr e1 ^ ")"
-| CAT(e1, e2) -> "cat(" ^ string_of_expr e1 ^ "," ^ string_of_expr e2 ^ ")"
+| Print(e1) -> "print(" ^ string_of_expr e1 ^ ")"
+| Shape(e1) -> "shape(" ^ string_of_expr e1 ^ ")"
+| Cat(e1, e2) -> "cat(" ^ string_of_expr e1 ^ "," ^ string_of_expr e2 ^ ")"
 | Any(e1) -> "any (" ^ string_of_expr e1 ^ ")"
 | All(e1) -> "all (" ^ string_of_expr e1 ^ ")"
 | Sum(e1) -> "sum (" ^ string_of_expr e1 ^ ")"
@@ -180,4 +180,4 @@ let rec string_of_stmt = function
 | MapFunc(s1)->String.concat "," (List.map string_of_stmt s1) ^ "\n"
 | ReduceFunc(s1)->String.concat "," (List.map string_of_stmt s1) ^ "\n"
 
-and string_of_program l = String.concat "" (List.map string_of_stmt l) ^ "\n\n"
+and string_of_program l = String.concat "" (List.map string_of_stmt l) ^ "\n"

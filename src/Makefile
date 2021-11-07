@@ -1,6 +1,6 @@
 all: tenlab.out clean
 
-tenlab : ast.cmo parser.cmo scanner.cmo tenlab.cmo
+tenlab : ast.cmo parser.cmo scanner.cmo sast.cmo semant.cmo tenlab.cmo
 	ocamlc -w A -o tenlab $^
 
 %.cmo : %.ml
@@ -19,8 +19,8 @@ tenlab.out : tenlab tenlab.tb
 	./tenlab < tenlab.tb > tenlab.out
 
 # Depedencies from ocamldep
-tenlab.cmo : scanner.cmo parser.cmi ast.cmo
-tenlab.cmx : scanner.cmx parser.cmx ast.cmo
+tenlab.cmo : scanner.cmo parser.cmi ast.cmo sast.cmo semant.cmo
+tenlab.cmx : scanner.cmx parser.cmx ast.cmo sast.cmo semant.cmo
 parser.cmo : ast.cmo parser.cmi
 parser.cmx : ast.cmo parser.cmi
 scanner.cmo : parser.cmi
