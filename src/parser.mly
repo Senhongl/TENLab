@@ -2,7 +2,7 @@
 
 %token SEP EOF
 // arithmetic operators
-%token PLUS SUBTRACT MULTIPLICATION DOT_MULTIPLICATION DIVIDE POWER DOT_POWER TRANSPOSE MOD FLOOR_DIVIDE NEG
+%token PLUS SUBTRACT MULTIPLICATION DOT_MULTIPLICATION DIVIDE POWER DOT_POWER TRANSPOSE MOD FLOOR_DIVIDE
 // relational operators
 %token IS_EQUAL IS_GEQ IS_GT IS_LEQ IS_LT IS_NOT_EQUAL
 // logical operators
@@ -42,7 +42,7 @@
 %left MULTIPLICATION DOT_MULTIPLICATION DIVIDE MOD FLOOR_DIVIDE
 %right POWER DOT_POWER
 %left TRANSPOSE
-%right NOT NEG
+%right NOT
 
 %start main
 %type <Ast.stmt list> main
@@ -132,23 +132,6 @@ map_func: MAP IDENTIFIER LEFT_CURLY_BRACKET stmts RIGHT_CURLY_BRACKET { MapFunc(
 
 reduce_func: REDUCE LEFT_CURLY_BRACKET stmts RIGHT_CURLY_BRACKET { ReduceFunc($3) }
 
-
-/***************************************************************************************
-                Tensor Declaration & Assignment
- ***************************************************************************************/
-/* We support the following forms of tensor declaration & assignment:
- *       (i)   From exisiting data, e.g., A = 1 TODO: support tensor.
- *       (ii)  TODO: From shape and values with built-in function
- *       (iii) Create numerical range, e.g., A = 0:3:1
- *       (iv)  From exisiting params, e.g., B = A
- */
-// tdecl:
-// TODO: support A, B = 1, 2?
-// | expr { [$1] }
-// | expr COMMA tdecl { $2::$1 }
-// | params ASSIGNMENT expr { Tdecl($1, $3) }
-
-
 /***************************************************************************************
         All possible expressions, including binary expression and unary expression
  ***************************************************************************************/
@@ -184,7 +167,7 @@ expr:
 | expr OR expr { Binop($1, Or, $3) }
 // Unary expression
 | NOT expr { Unop(Not, $2) }
-| NEG expr { Unop(Neg, $2) }
+| SUBTRACT expr { Unop(Neg, $2) }
 | expr TRANSPOSE { Unop(Transpose, $1) }
 // A special expression, numerical range. *)
 | expr COLON expr COLON expr { Range($1, $3, $5) }
@@ -220,6 +203,7 @@ expr:
 | func_call { $1 }
 | IDENTIFIER ASSIGNMENT expr { Assign($1, $3) }
 
+// tensor
 elements:
   expr { [$1] }
 | expr COMMA elements { $1::$3 }

@@ -2,6 +2,10 @@
         open Parser
 }
 
+let digit = ['0' - '9']
+let digits = digit+
+let exponent = ['e' 'E'] ['+' '-']? digits
+
 rule tokenize = parse
   [' ' '\t' '\r' '\n'] { tokenize lexbuf }
 | [';'] { SEP }
@@ -60,36 +64,33 @@ rule tokenize = parse
 | "continue" { CONTINUE }
 | "break" { BREAK }
 | "return" { RETURN }
-(* TODO: | "read" { READ }
-| "print" { PRINT } *)
 | "exit" { EXIT }
 | "def" { DEFINE }
 | "int" { INT }
 | "float" { FLOAT }
 | "var" { VAR }
-(* TODO: string or char? do we need to support these two keywords? *)
-(* TODO: | "var" { VOID_TENSOR } *)
-(* TODO: | "cat" { CAT }
-| "shape" { SHAPE } *)
 
 (* build-in function*)
-| "any" {ANY}
-| "all" {ALL}
-| "sum" {SUM}
-| "ones" {ONES}
-| "zeros" {LEN}
-| "int_of" {INT_OF}
-| "float_of" {FLOAT_OF}
-| "floor" {FLOOR}
-| "ceil" {CEIL}
-| "round" {ROUND}
-| "abs" {ABS}
-| "log" {LOG} 
-| "inverse" {INVERSE}
-| "solve" {SOLVE}
-| "svd" {SVD}
-| "eig" {EIG}
-| "eign" {EIGV}
+| "any" { ANY }
+| "all" { ALL }
+| "sum" { SUM }
+| "ones" { ONES }
+| "zeros" { LEN }
+| "int_of" { INT_OF }
+| "float_of" { FLOAT_OF }
+| "floor" { FLOOR }
+| "ceil" { CEIL }
+| "round" { ROUND }
+| "abs" { ABS }
+| "log" { LOG } 
+| "inverse" { INVERSE }
+| "solve" { SOLVE }
+| "svd" { SVD }
+| "eig" { EIG }
+| "eign" { EIGV }
+| "print" { PRINT }
+| "shape" { SHAPE }
+| "cat" { CAT }
 (* Parallel Environment keywords *)
 | "parallel_define" { PARALLEL_DEFINE }
 | "overload" { OVERLOAD }
@@ -100,12 +101,10 @@ rule tokenize = parse
 | "__"['*''+''-']"__" as oname { OPERATOR_INDICATOR(oname) }
 
 (* identifiers and literals *)
-(* TODO: work for negative sign? *)
-| ['0'-'9']+ as lit { INT_LITERAL(int_of_string lit) }
+| digits as lit { INT_LITERAL(int_of_string lit) }
 | ['a'-'z''A'-'Z']['a'-'z''A'-'Z''0'-'9''_']* as id { IDENTIFIER(id) }
 | ('"'[^'"''\\']*('\\'_[^'"''\\']*)*'"') as str { STRING_LITERAL(String.sub str 1 (String.length str - 2)) }
-| (((['0'-'9']*)'.'(['0'-'9']+)('e'['-''+']?['0'-'9']+)?) |
-   ((['0'-'9']+)('e'['-''+']?['0'-'9']+)?)) as flt { FLOAT_LITERAL(float_of_string flt) }
+| (digits '.' digit* exponent? | digits exponent | '.' digits exponent?) as lit { FLOAT_LITERAL(float_of_string lit) }
 
 | eof { EOF }
 
