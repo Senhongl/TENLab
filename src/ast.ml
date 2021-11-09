@@ -11,6 +11,8 @@ Add | Sub | Mul | DotMul | Div | Pow | DotPow | Mod | FlrDiv
 (* Logical operators *)
 | And | Or
 
+type typ = Int | Float | String | Void
+
 (* Unary operators *)
 type uop = Not | Neg | Transpose
 
