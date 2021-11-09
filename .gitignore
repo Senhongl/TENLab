@@ -9,3 +9,5 @@
 *.cmxa
 *.output
 *.out
+_build
+*.native
