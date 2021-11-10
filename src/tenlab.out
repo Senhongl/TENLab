@@ -1,9 +1,12 @@
 ; ModuleID = 'TENLab'
 source_filename = "TENLab"
 
-declare void @printf(i8*, ...)
+@string_ptr = private unnamed_addr constant [13 x i8] c"hello, world\00", align 1
 
 define i8 @main() {
 entry:
+  call void (i8*, ...) @printf(i8* getelementptr inbounds ([13 x i8], [13 x i8]* @string_ptr, i32 0, i32 0))
   ret i8 0
 }
+
+declare void @printf(i8*, ...)

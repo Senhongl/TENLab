@@ -11,3 +11,4 @@
 *.out
 _build
 *.native
+*.out.s

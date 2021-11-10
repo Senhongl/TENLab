@@ -37,24 +37,25 @@ let translate sstmts =
     | A.Void  -> void_t
   in
 
+  let function_type = L.function_type i8_t [||] in
+  let the_function = L.define_function "main" function_type the_module in
+
   let printf_t : L.lltype = 
       L.var_arg_function_type void_t [| L.pointer_type i8_t |] in
   let printf_func : L.llvalue = 
       L.declare_function "printf" printf_t the_module in
 
-  let rec expr builder e : L.llvalue = match e with
+  let rec expr builder e = match e with
       SLit lit -> (match lit with
           A.IntLit    i -> L.const_int    i32_t   i
         | A.FloatLit  f -> L.const_float  float_t f
         | A.StringLit s -> L.build_global_stringptr s "string_ptr" builder)
     | SPrint se -> L.build_call printf_func [| expr builder se |] "" builder in
   
-  let rec stmt builder s = function
-      SExpr se -> expr builder se in
-  
-  let function_type = L.function_type i8_t [||] in
-  let the_function = L.define_function "main" function_type the_module in
+  let rec stmt builder = function
+      SExpr se -> ignore(expr builder se); builder in
+
   let builder = L.builder_at_end context (L.entry_block the_function) in
-  ignore(List.map (stmt builder) sstmts);
+  let builder = List.fold_left stmt builder sstmts in
   ignore(L.build_ret (L.const_int i8_t 0) builder);
   the_module;
