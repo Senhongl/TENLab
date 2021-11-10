@@ -1,8 +1,8 @@
-(* Top-level of the MicroC compiler: scan & parse the input,
+(* Top-level of the TENLab compiler: scan & parse the input,
    check the resulting AST and generate an SAST from it, generate LLVM IR,
    and dump the module *)
 
-(* type action = Ast | Sast | LLVM_IR | Compile
+type action = Ast | Sast | LLVM_IR | Compile
 
 let () = 
   let action = ref Compile in
@@ -14,7 +14,7 @@ let () =
     ("-c", Arg.Unit (set_action Compile),
       "Check and print the generated LLVM IR (default)");
   ] in
-  let usage_msg = "usage: ./microc.native [-a|-s|-l|-c] [file.tl]" in
+  let usage_msg = "usage: ./tenlab.native [-a|-s|-l|-c] [file.tl]" in
   let channel = ref stdin in
   Arg.parse speclist (fun filename -> channel := open_in filename) usage_msg;
   let lexbuf = Lexing.from_channel !channel in
@@ -28,12 +28,13 @@ let () =
     | LLVM_IR -> print_string (Llvm.string_of_llmodule (Codegen.translate sast))
     | Compile -> let m = Codegen.translate sast in
 	Llvm_analysis.assert_valid_module m;
-	print_string (Llvm.string_of_llmodule m) *)
-let _ =
+	print_string (Llvm.string_of_llmodule m)
+
+(* let _ =
   let lexbuf = Lexing.from_channel stdin in
   let ast = Parser.main Scanner.tokenize lexbuf in
   let sast = Semant.check ast in
   let m = Codegen.translate sast in
   Llvm_analysis.assert_valid_module m;
   (* print_endline (Sast.string_of_sprogram sast) *)
-  print_string (Llvm.string_of_llmodule m)
+  print_string (Llvm.string_of_llmodule m) *)

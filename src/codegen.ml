@@ -49,7 +49,7 @@ let translate sstmts =
       SLit lit -> (match lit with
           A.IntLit    i -> L.const_int    i32_t   i
         | A.FloatLit  f -> L.const_float  float_t f
-        | A.StringLit s -> L.build_global_stringptr s "string_ptr" builder)
+        | A.StringLit s -> L.build_global_stringptr (s ^ "\n") "string_ptr" builder)
     | SPrint se -> L.build_call printf_func [| expr builder se |] "" builder in
   
   let rec stmt builder = function
