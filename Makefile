@@ -14,4 +14,4 @@ clean:
 	rm -rf *.cmi *.cmo
 	rm -rf parser.ml parser.mli
 	rm -rf scanner.ml
-	rm -rf tenlab
+	rm -rf tenlab.native
