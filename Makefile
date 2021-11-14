@@ -1,17 +1,9 @@
-.PHONY: test
-test: all test.sh
-	./test.sh tests/test-*.tl
+dim.out : tensordim.native dim.tb
+	./tensordim.native < dim.tb > dim.out
 
-.PHONY: all
-all : tenlab.native
+tensordim.native : tensorscanner.mll tensorparser.mly tensorast.mli tensordim.ml
+	ocamlbuild tensordim.native
 
-tenlab.native:
-	opam config exec -- \
-	ocamlbuild -I src -use-ocamlfind tenlab.native
-
-.PHONY: clean
-clean:
-	rm -rf *.cmi *.cmo
-	rm -rf parser.ml parser.mli
-	rm -rf scanner.ml
-	rm -rf tenlab.native
+.PHONY : clean
+clean :
+	rm -rf *.out _build *.native
