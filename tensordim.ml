@@ -48,7 +48,7 @@ let rec tensor_dim = function
 let rec print_list = function 
   [] -> print_endline(")")
 | e::l -> if e < 0 then (print_char('('); print_list l)
-          else (print_int e ; print_string ", " ; print_list l)
+          else (print_int e; print_string ", "; print_list l)
 
 let a =
   let lexbuf = Lexing.from_channel stdin in
