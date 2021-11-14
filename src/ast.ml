@@ -32,13 +32,14 @@ type operator_name =
 (* TODO: support function call *)
 type expr =
   Lit of literal
-| Elements of expr list
 | IntTensor of expr
 | FloatTensor of expr
 | VarTensor of expr
-| ConcatTensor of expr * expr
-| OpenTensor of expr
-| CloseTensor of expr
+| LRTensor of expr
+| NPTensor of expr
+| LRTensors of expr * expr
+| NPTensors of expr * expr
+| Tensor0 of expr
 | Binop of expr * bop * expr
 | Unop of uop * expr
 | Range of expr * expr * expr
@@ -88,9 +89,8 @@ type stmt =
 | POSign of string * string list
 | ParallelOperator of stmt * stmt
 | MapReduce of stmt list * stmt
-| MapFunc of stmt list
+| MapFunc of string * stmt list
 | ReduceFunc of stmt list
-
 
 
 let string_of_bop = function
@@ -132,6 +132,8 @@ let rec string_of_expr = function
 | Break -> "break\n"
 | Continue -> "continue\n"
 | Exit -> "exit\n"
+
+(* built-in functions *)
 | Print(e1) -> "print(" ^ string_of_expr e1 ^ ")"
 | Shape(e1) -> "shape(" ^ string_of_expr e1 ^ ")"
 | Cat(e1, e2) -> "cat(" ^ string_of_expr e1 ^ "," ^ string_of_expr e2 ^ ")"
@@ -146,6 +148,7 @@ let rec string_of_expr = function
 | Floor(e1) -> "floor (" ^ string_of_expr e1 ^ ")"
 | Ceil(e1) -> "ceil (" ^ string_of_expr e1 ^ ")"
 | Round(e1) -> "round (" ^ string_of_expr e1 ^ ")"
+| Abs(e1) -> "abs(" ^ string_of_expr e1 ^ ")"
 | Log(e1) -> "log (" ^ string_of_expr e1 ^ ")"
 | Inverse(e1) -> "inverse (" ^ string_of_expr e1 ^ ")"
 | Solve(e1, e2) -> "solve (" ^ string_of_expr e1 ^ ", " ^ string_of_expr e2 ^ ")"
@@ -155,17 +158,18 @@ let rec string_of_expr = function
 | FuncCall(str1, e1) -> (str1 ^ " = " ^ (String.concat "," (List.map string_of_expr e1)))
 | Assign(str1, e1) -> (str1 ^ " = " ^ string_of_expr e1)
 
-| Elements(e1) -> String.concat "," (List.map string_of_expr e1)
-| OpenTensor(e1) -> "[" ^ string_of_expr e1
-| CloseTensor(e1) -> string_of_expr e1 ^ "]"
-| ConcatTensor(e1, e2) -> string_of_expr e1 ^ ";" ^ string_of_expr e2
+| Tensor0(e1) -> string_of_expr(e1)
+| LRTensor(e1) -> "[" ^ string_of_expr e1 ^ "]"
+| NPTensor(e1) -> string_of_expr(e1)
+| LRTensors(e1, e2) -> "[" ^ string_of_expr e1 ^ ", " ^ string_of_expr e2 ^ "]"
+| NPTensors(e1, e2) -> string_of_expr e1 ^ ", " ^ string_of_expr e2
 | IntTensor(e1) -> "int(" ^ string_of_expr e1 ^ ")"
 | FloatTensor(e1) -> "float(" ^ string_of_expr e1 ^ ")"
 | VarTensor(e1) -> "var(" ^ string_of_expr e1 ^ ")"
 
 let rec string_of_stmt = function
   EmptyStmt -> ""
-| Expr(e1) -> string_of_expr e1 ^ "\n"
+| Expr(e1) -> string_of_expr e1 ^ ";\n"
 | FuncSign(str1, str2) -> str1 ^ "(" ^ (String.concat "," str2) ^ ")" ^ "\n"
 | FuncDecl(s1, s2) -> "def " ^ string_of_stmt s1 ^ "{\n" ^ String.concat "," (List.map string_of_stmt s2) ^ "}\n"
 | Tdecl(str1, s1) -> String.concat "," str1 ^ " = " ^ string_of_stmt s1 ^ "\n"
@@ -175,11 +179,11 @@ let rec string_of_stmt = function
 | ForStmt(str1, e1, s1) -> "for (" ^ str1 ^ " in " ^ string_of_expr e1 ^ ") {\n" ^ String.concat "," (List.map string_of_stmt s1) ^ "\n}\n"
 | WhileStmt(e1, s1) -> "while (" ^ string_of_expr e1 ^ ") {\n" ^ String.concat "," (List.map string_of_stmt s1) ^ "\n}\n"
 (* Parallel Environment *)
-| PEDecl(str1, s2) -> "para_def " ^ str1 ^ "{\n" ^ String.concat "," (List.map string_of_stmt s2) ^ "}\n"
-| POSign(str1, s2) -> "ol " ^ str1 ^ " (" ^ String.concat "," s2 ^ ") "
+| PEDecl(str1, s2) -> "parallel_define " ^ str1 ^ "{\n" ^ String.concat "," (List.map string_of_stmt s2) ^ "}\n"
+| POSign(str1, s2) -> "    overload " ^ str1 ^ " (" ^ String.concat "," s2 ^ ") "
 | ParallelOperator(s1, s2) -> string_of_stmt s1 ^ "\n" ^ string_of_stmt s2
-| MapReduce(s1, s2) -> String.concat "," (List.map string_of_stmt s1) ^ "\n" ^ string_of_stmt s2
-| MapFunc(s1)->String.concat "," (List.map string_of_stmt s1) ^ "\n"
-| ReduceFunc(s1)->String.concat "," (List.map string_of_stmt s1) ^ "\n"
+| MapReduce(map, reduce) -> String.concat "\n" (List.map string_of_stmt map) ^ "\n" ^ string_of_stmt reduce
+| MapFunc(str1, s1)-> "        map " ^ str1 ^ "{\n" ^ String.concat "\n" (List.map string_of_stmt s1) ^ "}"
+| ReduceFunc(s1)-> "        reduce {\n" ^ String.concat "\n" (List.map string_of_stmt s1) ^ "}"
 
 and string_of_program l = String.concat "" (List.map string_of_stmt l) ^ "\n"

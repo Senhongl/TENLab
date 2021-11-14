@@ -128,7 +128,7 @@ map_funcs:
 | map_func { [$1] }
 | map_func map_funcs { $1 :: $2 }
 
-map_func: MAP IDENTIFIER LEFT_CURLY_BRACKET stmts RIGHT_CURLY_BRACKET { MapFunc($4) }
+map_func: MAP IDENTIFIER LEFT_CURLY_BRACKET stmts RIGHT_CURLY_BRACKET { MapFunc($2, $4) }
 
 reduce_func: REDUCE LEFT_CURLY_BRACKET stmts RIGHT_CURLY_BRACKET { ReduceFunc($3) }
 
@@ -204,12 +204,11 @@ expr:
 | IDENTIFIER ASSIGNMENT expr { Assign($1, $3) }
 
 // tensor
-elements:
-  expr { [$1] }
-| expr COMMA elements { $1::$3 }
-
 tensor:
-| elements { Elements($1) }
-| LEFT_SQUARE_BRACKET tensor { OpenTensor($2) }
-| tensor RIGHT_SQUARE_BRACKET { CloseTensor($1) }
-| tensor SEP tensor { ConcatTensor($1, $3) }
+    LEFT_SQUARE_BRACKET tensor COMMA n_tensor RIGHT_SQUARE_BRACKET { LRTensors($2, $4) }
+  | LEFT_SQUARE_BRACKET tensor RIGHT_SQUARE_BRACKET { LRTensor($2) }
+  | expr { Tensor0($1) }
+
+n_tensor:
+    tensor COMMA n_tensor { NPTensors($1, $3) }
+  | tensor { NPTensor($1) }

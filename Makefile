@@ -3,7 +3,7 @@ test: all test.sh
 	./test.sh tests/test-*.tl
 
 .PHONY: all
-all : tenlab.native
+all: tenlab.native
 
 tenlab.native:
 	opam config exec -- \
@@ -15,3 +15,4 @@ clean:
 	rm -rf parser.ml parser.mli
 	rm -rf scanner.ml
 	rm -rf tenlab.native
+	rm -rf _build
