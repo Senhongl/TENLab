@@ -57,7 +57,7 @@ main:
                                 Statements
  ***************************************************************************************/
 
-stmts: 
+stmts:
 | { [] }
 | stmt stmts { $1::$2 }
 
@@ -110,6 +110,8 @@ params:
                     Parallel Environment
  ***************************************************************************************/
 
+/*** Old def of PE
+
 pe_body: LEFT_CURLY_BRACKET po_defs RIGHT_CURLY_BRACKET { $2 }
 
 po_def_head: OVERLOAD OPERATOR_INDICATOR LEFT_PARENTHESIS params RIGHT_PARENTHESIS { POSign($2, $4) } // PO:paralleled operator
@@ -131,6 +133,32 @@ map_funcs:
 map_func: MAP IDENTIFIER LEFT_CURLY_BRACKET stmts RIGHT_CURLY_BRACKET { MapFunc($4) }
 
 reduce_func: REDUCE LEFT_CURLY_BRACKET stmts RIGHT_CURLY_BRACKET { ReduceFunc($3) }
+
+***/
+
+
+pe_body: IDENTIFIER LEFT_CURLY_BRACKET po_list RIGHT_CURLY_BRACKET { $2 }
+
+po_list:
+| po { [$1] }
+| po po_list { $1 :: $2 }
+
+po: OVERLOAD OPERATOR_INDICATOR LEFT_PARENTHESIS params RIGHT_PARENTHESIS LEFT_CURLY_BRACKET map_funcs reduce_func RIGHT_CURLY_BRACKET
+{ {
+operator = $2;
+params = $4;
+mapfuncs = $7;
+reducefunc = $8;
+} }
+
+map_funcs:
+| map_func { [$1] }
+| map_func map_funcs { $1 :: $2 }
+
+map_func: MAP IDENTIFIER stmt_body { $3 }
+
+reduce_func: REDUCE stmt_body { $2 }
+
 
 /***************************************************************************************
         All possible expressions, including binary expression and unary expression

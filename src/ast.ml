@@ -83,13 +83,25 @@ type stmt =
 | IfStmt of expr * stmt list * stmt list
 | ForStmt of string * expr * stmt list
 | WhileStmt of expr * stmt list
-(* Parallel Environment *)
+| PEDecl of string * pofunc list
+
+
+(* Old Parallel Environment
 | PEDecl of string * stmt list
 | POSign of string * string list
 | ParallelOperator of stmt * stmt
 | MapReduce of stmt list * stmt
 | MapFunc of stmt list
 | ReduceFunc of stmt list
+*)
+
+(* PE Declaration *)
+type pofunc = {
+  operator : string;
+  params : string list;
+  mapfuncs : stmt list list;
+  reducefunc : stmt list;
+}
 
 
 
