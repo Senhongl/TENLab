@@ -12,7 +12,7 @@ let rec print_tensor = function
 
 let rec equal_dim x1 x2=
   match x1, x2 with
-    x10::x1_, x20::x2_ -> (x10 = x20) && equal_dim x1_ x2_
+    x10::x1_, x20::x2_ -> if (x10 != x20) then false else equal_dim x1_ x2_
   | [], [] -> true
   | _, [] -> false
   | [], _ -> false
