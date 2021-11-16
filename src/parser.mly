@@ -79,12 +79,12 @@ stmts:
  */
 stmt:
 | expr SEP { Expr($1) }
-| PARALLEL_DEFINE IDENTIFIER pe_body { PEDecl($2, $3) }
-| USING IDENTIFIER { PEInvoke($2) }
+| PARALLEL_DEFINE IDENTIFIER pe_body { PEDecl(Id($2), $3) }
+| USING IDENTIFIER { PEInvoke(Id($2)) }
 | DEFINE func_signature stmt_body { FuncDecl($2, $3) }
 | IF LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt_body %prec NOELSE { IfStmt($3, $5, [EmptyStmt]) }
 | IF LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt_body ELSE stmt_body { IfStmt($3, $5, $7) }
-| FOR LEFT_PARENTHESIS IDENTIFIER IN expr RIGHT_PARENTHESIS stmt_body { ForStmt($3, $5, $7) }
+| FOR LEFT_PARENTHESIS IDENTIFIER IN expr RIGHT_PARENTHESIS stmt_body { ForStmt(Id($3), $5, $7) }
 | WHILE LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt_body { WhileStmt($3, $5) }
 
 stmt_body: LEFT_CURLY_BRACKET stmts RIGHT_CURLY_BRACKET { $2 }
@@ -93,22 +93,22 @@ stmt_body: LEFT_CURLY_BRACKET stmts RIGHT_CURLY_BRACKET { $2 }
                         Function Call
  ***************************************************************************************/
 
-func_signature: IDENTIFIER LEFT_PARENTHESIS params RIGHT_PARENTHESIS { FuncSign($1, $3) }
+func_signature: IDENTIFIER LEFT_PARENTHESIS params RIGHT_PARENTHESIS { FuncSign(Id($1), $3) }
 
 /* We support the following form of function call:
  *      (i)  call the function directly
  *      (ii) call the function and assign the return value to variable(s)
  */
 // TODO: support a, b = foo(), foo()? *)
-func_call: IDENTIFIER LEFT_PARENTHESIS exprs RIGHT_PARENTHESIS { FuncCall($1, $3) }
+func_call: IDENTIFIER LEFT_PARENTHESIS exprs RIGHT_PARENTHESIS { FuncCall(Id($1), $3) }
 
 exprs:
 | expr { [$1] }
 | expr COMMA exprs { $1 :: $3 }
 
 params:
-| IDENTIFIER { [$1] }
-| IDENTIFIER COMMA params { $1 :: $3 }
+| IDENTIFIER { [Id($1)] }
+| IDENTIFIER COMMA params { Id($1) :: $3 }
 
 /***************************************************************************************
                     Parallel Environment
@@ -116,6 +116,7 @@ params:
 
 pe_body: LEFT_CURLY_BRACKET po_defs RIGHT_CURLY_BRACKET { $2 }
 
+// TODO: how to add operator indicator to the symbol table?
 po_def_head: OVERLOAD OPERATOR_INDICATOR LEFT_PARENTHESIS params RIGHT_PARENTHESIS { POSign($2, $4) } // PO:paralleled operator
 
 po_defs:
@@ -132,7 +133,7 @@ map_funcs:
 | map_func { [$1] }
 | map_func map_funcs { $1 :: $2 }
 
-map_func: MAP IDENTIFIER LEFT_CURLY_BRACKET stmts RIGHT_CURLY_BRACKET { MapFunc($2, $4) }
+map_func: MAP IDENTIFIER LEFT_CURLY_BRACKET stmts RIGHT_CURLY_BRACKET { MapFunc(Id($2), $4) }
 
 reduce_func: REDUCE LEFT_CURLY_BRACKET stmts RIGHT_CURLY_BRACKET { ReduceFunc($3) }
 
@@ -150,7 +151,7 @@ expr:
 | FLOAT LEFT_PARENTHESIS tensor RIGHT_PARENTHESIS { FloatTensor($3) }
 | VAR LEFT_PARENTHESIS tensor RIGHT_PARENTHESIS { VarTensor($3) }
 // Indentifier
-| IDENTIFIER { Lit(StringLit($1)) }
+| IDENTIFIER { Id($1) }
 // Expression within parenthesis
 | LEFT_PARENTHESIS expr RIGHT_PARENTHESIS { $2 }
 // Binary expression
@@ -207,7 +208,8 @@ expr:
 | EIGV LEFT_PARENTHESIS expr RIGHT_PARENTHESIS { Eigv($3) }
 // function call
 | func_call { $1 }
-| IDENTIFIER ASSIGNMENT expr { Assign($1, $3) }
+// TODO: support a, b = 1, 2?
+| IDENTIFIER ASSIGNMENT expr { Assign(Id($1), $3) }
 
 // tensor
 tensor:
