@@ -9,9 +9,11 @@ type sexpr =
 | SIntTensor of sexpr
 | SFloatTensor of sexpr
 | SVarTensor of sexpr
-| SConcatTensor of sexpr * sexpr
-| SOpenTensor of sexpr
-| SCloseTensor of sexpr
+| SLRTensor of sexpr
+| SNPTensor of sexpr
+| SLRTensors of sexpr * sexpr
+| SNPTensors of sexpr * sexpr
+| STensor0 of sexpr
 | SBinop of sexpr * bop * sexpr
 | SUnop of uop * sexpr
 | SRange of sexpr * sexpr * sexpr
@@ -51,9 +53,9 @@ type sstmt =
 
 let rec string_of_sexpr = function
   SLit(l) -> Ast.string_of_lit l
-| SPrint(se1) -> "print(" ^ string_of_sexpr se1 ^ ");"
+| SPrint(se1) -> "print(" ^ string_of_sexpr se1 ^ ")"
 
 let rec string_of_sstmt = function
-  SExpr(se1) -> string_of_sexpr se1
+  SExpr(se1) -> string_of_sexpr se1 ^ ";"
 
 and string_of_sprogram l = String.concat "" (List.map string_of_sstmt l) ^ "\n"

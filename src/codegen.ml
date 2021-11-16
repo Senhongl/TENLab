@@ -50,7 +50,7 @@ let translate sstmts =
           A.IntLit    i -> L.const_int    i32_t   i
         | A.FloatLit  f -> L.const_float  float_t f
         | A.StringLit s -> L.build_global_stringptr (s ^ "\n") "string_ptr" builder)
-    | SPrint se -> L.build_call printf_func [| expr builder se |] "" builder in
+    | SPrint(se1) -> L.build_call printf_func [| expr builder se1 |] "" builder in
   
   let rec stmt builder = function
       SExpr se -> ignore(expr builder se); builder in

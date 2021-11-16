@@ -17,7 +17,6 @@ type typ = Int | Float | String | Void
 type uop = Not | Neg | Transpose
 
 (* Literal *)
-(* TODO: support Tensor Literals *)
 type literal =
   IntLit of int
 | FloatLit of float
@@ -28,8 +27,6 @@ type operator_name =
 | MinusSymbol
 | MulSymbol
 
-(* TODO: support tensor! not just 0-dim data *)
-(* TODO: support function call *)
 type expr =
   Lit of literal
 | IntTensor of expr
@@ -47,11 +44,11 @@ type expr =
 | Return of expr
 | Break
 | Continue
-| Exit
+| Exit of expr
 (* Built-in functions *)
 | Print of expr
 | Shape of expr
-| Cat of expr * expr
+| Cat of expr * expr * expr
 | Any of expr
 | All of expr
 | Sum of expr
@@ -86,6 +83,7 @@ type stmt =
 | WhileStmt of expr * stmt list
 (* Parallel Environment *)
 | PEDecl of string * stmt list
+| PEInvoke of string
 | POSign of string * string list
 | ParallelOperator of stmt * stmt
 | MapReduce of stmt list * stmt
@@ -131,12 +129,12 @@ let rec string_of_expr = function
 | Return(e1) -> "return " ^ string_of_expr e1 ^ "\n"
 | Break -> "break\n"
 | Continue -> "continue\n"
-| Exit -> "exit\n"
+| Exit(e1) -> "exit" ^ string_of_expr e1 ^ "\n"
 
 (* built-in functions *)
 | Print(e1) -> "print(" ^ string_of_expr e1 ^ ")"
 | Shape(e1) -> "shape(" ^ string_of_expr e1 ^ ")"
-| Cat(e1, e2) -> "cat(" ^ string_of_expr e1 ^ "," ^ string_of_expr e2 ^ ")"
+| Cat(e1, e2, e3) -> "cat(" ^ string_of_expr e1 ^ "," ^ string_of_expr e2 ^ string_of_expr e3 ^ ")"
 | Any(e1) -> "any (" ^ string_of_expr e1 ^ ")"
 | All(e1) -> "all (" ^ string_of_expr e1 ^ ")"
 | Sum(e1) -> "sum (" ^ string_of_expr e1 ^ ")"
@@ -180,6 +178,7 @@ let rec string_of_stmt = function
 | WhileStmt(e1, s1) -> "while (" ^ string_of_expr e1 ^ ") {\n" ^ String.concat "," (List.map string_of_stmt s1) ^ "\n}\n"
 (* Parallel Environment *)
 | PEDecl(str1, s2) -> "parallel_define " ^ str1 ^ "{\n" ^ String.concat "," (List.map string_of_stmt s2) ^ "}\n"
+| PEInvoke(str1) -> "using " ^ str1
 | POSign(str1, s2) -> "    overload " ^ str1 ^ " (" ^ String.concat "," s2 ^ ") "
 | ParallelOperator(s1, s2) -> string_of_stmt s1 ^ "\n" ^ string_of_stmt s2
 | MapReduce(map, reduce) -> String.concat "\n" (List.map string_of_stmt map) ^ "\n" ^ string_of_stmt reduce

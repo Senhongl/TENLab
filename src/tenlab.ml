@@ -29,12 +29,3 @@ let () =
     | Compile -> let m = Codegen.translate sast in
 	Llvm_analysis.assert_valid_module m;
 	print_string (Llvm.string_of_llmodule m)
-
-(* let _ =
-  let lexbuf = Lexing.from_channel stdin in
-  let ast = Parser.main Scanner.tokenize lexbuf in
-  let sast = Semant.check ast in
-  let m = Codegen.translate sast in
-  Llvm_analysis.assert_valid_module m;
-  (* print_endline (Sast.string_of_sprogram sast) *)
-  print_string (Llvm.string_of_llmodule m) *)

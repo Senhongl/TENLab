@@ -96,6 +96,7 @@ rule tokenize = parse
 | "overload" { OVERLOAD }
 | "map" { MAP }
 | "reduce" { REDUCE }
+| "using" { USING }
 
 (* Operator Names *)
 | "__"['*''+''-']"__" as oname { OPERATOR_INDICATOR(oname) }

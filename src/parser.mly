@@ -19,7 +19,7 @@
 %token ANY ALL SUM ONES ZEROS LEN INT_OF FLOAT_OF FLOOR CEIL ROUND ABS LOG INVERSE SOLVE SVD EIG EIGV PRINT SHAPE CAT
 
 // TODO: string or char?
-%token IF ELIF ELSE FOR WHILE IN CONTINUE BREAK RETURN EXIT DEFINE INT FLOAT STRING VAR PARALLEL_DEFINE OVERLOAD MAP REDUCE RETURN
+%token IF ELIF ELSE FOR WHILE IN CONTINUE BREAK RETURN EXIT DEFINE INT FLOAT STRING VAR PARALLEL_DEFINE OVERLOAD MAP REDUCE USING RETURN
 %token <string> OPERATOR_INDICATOR
 %token <int> INT_LITERAL
 %token <string> STRING_LITERAL
@@ -27,8 +27,8 @@
 %token <string> IDENTIFIER
 
 %left SEP
-%nonassoc RIGHT_SQUARE_BRACKET  RIGHT_PARENTHESIS
-%nonassoc LEFT_SQUARE_BRACKET LEFT_PARENTHESIS
+%nonassoc RIGHT_SQUARE_BRACKET RIGHT_CURLY_BRACKET
+%nonassoc LEFT_SQUARE_BRACKET LEFT_CURLY_BRACKET
 %nonassoc COLON
 %nonassoc COMMA
 %nonassoc NOELSE
@@ -43,6 +43,9 @@
 %right POWER DOT_POWER
 %left TRANSPOSE
 %right NOT
+
+%nonassoc RIGHT_PARENTHESIS 
+%nonassoc LEFT_PARENTHESIS 
 
 %start main
 %type <Ast.stmt list> main
@@ -77,6 +80,7 @@ stmts:
 stmt:
 | expr SEP { Expr($1) }
 | PARALLEL_DEFINE IDENTIFIER pe_body { PEDecl($2, $3) }
+| USING IDENTIFIER { PEInvoke($2) }
 | DEFINE func_signature stmt_body { FuncDecl($2, $3) }
 | IF LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt_body %prec NOELSE { IfStmt($3, $5, [EmptyStmt]) }
 | IF LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt_body ELSE stmt_body { IfStmt($3, $5, $7) }
@@ -147,6 +151,8 @@ expr:
 | VAR LEFT_PARENTHESIS tensor RIGHT_PARENTHESIS { VarTensor($3) }
 // Indentifier
 | IDENTIFIER { Lit(StringLit($1)) }
+// Expression within parenthesis
+| LEFT_PARENTHESIS expr RIGHT_PARENTHESIS { $2 }
 // Binary expression
 | expr PLUS expr { Binop($1, Add, $3) }
 | expr SUBTRACT expr { Binop($1, Sub, $3) }
@@ -175,12 +181,12 @@ expr:
 | RETURN expr { Return($2) }
 | BREAK { Break }
 | CONTINUE { Continue }
-| EXIT { Exit }
+| EXIT LEFT_PARENTHESIS expr RIGHT_PARENTHESIS { Exit($3) }
 // built-in functions
 // TODO: necessary to do the syntax check?
 | PRINT LEFT_PARENTHESIS expr RIGHT_PARENTHESIS { Print($3) }
 | SHAPE LEFT_PARENTHESIS expr RIGHT_PARENTHESIS { Shape($3) }
-| CAT LEFT_PARENTHESIS expr COMMA expr RIGHT_PARENTHESIS { Cat($3, $5) }
+| CAT LEFT_PARENTHESIS expr COMMA expr COMMA expr RIGHT_PARENTHESIS { Cat($3, $5, $7) }
 | ANY LEFT_PARENTHESIS expr RIGHT_PARENTHESIS { Any($3) }
 | ALL LEFT_PARENTHESIS expr RIGHT_PARENTHESIS { All($3) }
 | SUM LEFT_PARENTHESIS expr RIGHT_PARENTHESIS { Sum($3) }
