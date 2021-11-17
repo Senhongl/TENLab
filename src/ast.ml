@@ -155,7 +155,7 @@ let rec string_of_expr = function
 | Svd(e1) -> "svd (" ^ string_of_expr e1 ^ ")"
 | Eig(e1) -> "eig (" ^ string_of_expr e1 ^ ")"
 | Eigv(e1) -> "Eigv (" ^ string_of_expr e1 ^ ")"
-| FuncCall(e1, e2) -> (string_of_expr e1 ^ " = " ^ (String.concat "," (List.map string_of_expr e2)))
+| FuncCall(e1, e2) -> (string_of_expr e1 ^ "(" ^ (String.concat "," (List.map string_of_expr e2))) ^ ")"
 
 | Tensor0(e1) -> string_of_expr(e1)
 | LRTensor(e1) -> "[" ^ string_of_expr e1 ^ "]"
