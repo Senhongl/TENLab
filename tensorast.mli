@@ -1,6 +1,13 @@
-type tensor =
-    LRTensor of tensor
-  | NPTensor of tensor
-  | LRTensors of tensor * tensor
-  | NPTensors of tensor * tensor
-  | Tensor0 of int
+type literal =
+  IntLit of int
+| FloatLit of float
+
+type expr =
+  Lit of literal
+| IntTensor of expr
+| FloatTensor of expr
+| LRTensor of expr
+| NPTensor of expr
+| LRTensors of expr * expr
+| NPTensors of expr * expr
+| Tensor0 of expr
