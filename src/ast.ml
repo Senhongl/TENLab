@@ -70,12 +70,12 @@ type expr =
 | Eigv of expr
 
 | FuncCall of expr * expr list
-| Assign of expr * expr
 
 (* Statements *)
 type stmt =
   EmptyStmt
 | Expr of expr
+| Assign of expr * expr
 | FuncSign of expr * expr list
 | FuncDecl of stmt * stmt list
 | Tdecl of string list * stmt
@@ -156,7 +156,6 @@ let rec string_of_expr = function
 | Eig(e1) -> "eig (" ^ string_of_expr e1 ^ ")"
 | Eigv(e1) -> "Eigv (" ^ string_of_expr e1 ^ ")"
 | FuncCall(e1, e2) -> (string_of_expr e1 ^ " = " ^ (String.concat "," (List.map string_of_expr e2)))
-| Assign(e1, e2) -> (string_of_expr e1 ^ " = " ^ string_of_expr e2)
 
 | Tensor0(e1) -> string_of_expr(e1)
 | LRTensor(e1) -> "[" ^ string_of_expr e1 ^ "]"
@@ -170,6 +169,7 @@ let rec string_of_expr = function
 let rec string_of_stmt = function
   EmptyStmt -> ""
 | Expr(e1) -> string_of_expr e1 ^ ";\n"
+| Assign(e1, e2) -> (string_of_expr e1 ^ " = " ^ string_of_expr e2)
 | FuncSign(e1, e2) -> string_of_expr e1 ^ "(" ^ (String.concat "," (List.map string_of_expr e2)) ^ ")" ^ "\n"
 | FuncDecl(s1, s2) -> "def " ^ string_of_stmt s1 ^ "{\n" ^ String.concat "," (List.map string_of_stmt s2) ^ "}\n"
 | Tdecl(str1, s1) -> String.concat "," str1 ^ " = " ^ string_of_stmt s1 ^ "\n"

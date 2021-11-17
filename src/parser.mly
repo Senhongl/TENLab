@@ -79,6 +79,8 @@ stmts:
  */
 stmt:
 | expr SEP { Expr($1) }
+// TODO: support a, b = 1, 2?
+| IDENTIFIER ASSIGNMENT expr SEP { Assign(Id($1), $3) }
 | PARALLEL_DEFINE IDENTIFIER pe_body { PEDecl(Id($2), $3) }
 | USING IDENTIFIER { PEInvoke(Id($2)) }
 | DEFINE func_signature stmt_body { FuncDecl($2, $3) }
@@ -208,8 +210,6 @@ expr:
 | EIGV LEFT_PARENTHESIS expr RIGHT_PARENTHESIS { Eigv($3) }
 // function call
 | func_call { $1 }
-// TODO: support a, b = 1, 2?
-| IDENTIFIER ASSIGNMENT expr { Assign(Id($1), $3) }
 
 // tensor
 tensor:
