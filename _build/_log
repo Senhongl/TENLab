@@ -1,0 +1,32 @@
+### Starting build.
+# Target: tensordim.ml.depends, tags: { extension:ml, file:tensordim.ml, ocaml, ocamldep, quiet }
+ocamldep.opt -modules tensordim.ml > tensordim.ml.depends
+# Target: tensorast.mli.depends, tags: { extension:mli, file:tensorast.mli, ocaml, ocamldep, quiet }
+ocamldep.opt -modules tensorast.mli > tensorast.mli.depends # cached
+# Target: tensorast.cmi, tags: { byte, compile, extension:mli, file:tensorast.mli, interf, ocaml, quiet }
+ocamlc.opt -c -o tensorast.cmi tensorast.mli # cached
+# Target: tensorparser.mly, tags: { extension:mly, file:tensorparser.mly, infer, ocaml, ocamlyacc, parser, quiet }
+ocamlyacc tensorparser.mly # cached
+# Target: tensorparser.mli.depends, tags: { extension:mli, file:tensorparser.mli, ocaml, ocamldep, quiet }
+ocamldep.opt -modules tensorparser.mli > tensorparser.mli.depends # cached
+# Target: tensorparser.cmi, tags: { byte, compile, extension:mli, file:tensorparser.mli, interf, ocaml, quiet }
+ocamlc.opt -c -o tensorparser.cmi tensorparser.mli # cached
+# Target: tensorscanner.mll, tags: { extension:mll, file:tensorscanner.mll, lexer, ocaml, ocamllex, quiet }
+ocamllex.opt -q tensorscanner.mll # cached
+# Target: tensorscanner.ml.depends, tags: { extension:ml, file:tensorscanner.ml, ocaml, ocamldep, quiet }
+ocamldep.opt -modules tensorscanner.ml > tensorscanner.ml.depends # cached
+# Target: tensorscanner.cmo, tags: { byte, compile, extension:cmo, extension:ml, file:tensorscanner.cmo, file:tensorscanner.ml, implem, ocaml, quiet }
+ocamlc.opt -c -o tensorscanner.cmo tensorscanner.ml # cached
+# Target: tensordim.cmo, tags: { byte, compile, extension:cmo, extension:ml, file:tensordim.cmo, file:tensordim.ml, implem, ocaml, quiet }
+ocamlc.opt -c -o tensordim.cmo tensordim.ml
+# Target: tensorparser.ml.depends, tags: { extension:ml, file:tensorparser.ml, ocaml, ocamldep, quiet }
+ocamldep.opt -modules tensorparser.ml > tensorparser.ml.depends # cached
+# Target: tensorparser.cmx, tags: { compile, extension:cmx, extension:ml, file:tensorparser.cmx, file:tensorparser.ml, implem, native, ocaml, quiet }
+ocamlopt.opt -c -o tensorparser.cmx tensorparser.ml # cached
+# Target: tensorscanner.cmx, tags: { compile, extension:cmx, extension:ml, file:tensorscanner.cmx, file:tensorscanner.ml, implem, native, ocaml, quiet }
+ocamlopt.opt -c -o tensorscanner.cmx tensorscanner.ml # cached
+# Target: tensordim.cmx, tags: { compile, extension:cmx, extension:ml, file:tensordim.cmx, file:tensordim.ml, implem, native, ocaml, quiet }
+ocamlopt.opt -c -o tensordim.cmx tensordim.ml
+# Target: tensordim.native, tags: { dont_link_with, extension:native, file:tensordim.native, link, native, ocaml, program, quiet }
+ocamlopt.opt tensorparser.cmx tensorscanner.cmx tensordim.cmx -o tensordim.native
+# Compilation successful.
