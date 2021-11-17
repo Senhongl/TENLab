@@ -16,9 +16,9 @@ http://llvm.moe/ocaml/
 
 module L = Llvm
 module A = Ast
-open Sast 
+open Sast
 
-let translate sstmts =
+let translate (pes,sstmts) =
   let context = L.global_context() in
 
   let the_module = L.create_module context "TENLab" in
@@ -40,9 +40,9 @@ let translate sstmts =
   let function_type = L.function_type i8_t [||] in
   let the_function = L.define_function "main" function_type the_module in
 
-  let printf_t : L.lltype = 
+  let printf_t : L.lltype =
       L.var_arg_function_type void_t [| L.pointer_type i8_t |] in
-  let printf_func : L.llvalue = 
+  let printf_func : L.llvalue =
       L.declare_function "printf" printf_t the_module in
 
   let rec expr builder e = match e with
@@ -51,7 +51,7 @@ let translate sstmts =
         | A.FloatLit  f -> L.const_float  float_t f
         | A.StringLit s -> L.build_global_stringptr (s ^ "\n") "string_ptr" builder)
     | SPrint se -> L.build_call printf_func [| expr builder se |] "" builder in
-  
+
   let rec stmt builder = function
       SExpr se -> ignore(expr builder se); builder in
 

@@ -8,9 +8,12 @@ open Sast
    throws an exception if something is wrong.
 
    Check each global variable, then check each function *)
-let check stmts = 
+
+
+
+let check (pe,stmts) =
   let rec expr = function
     Lit(l) -> SLit(l)
   | Print(e) -> SPrint(expr e) in
-  List.map (function stmt -> match stmt with
-              Expr(e) -> SExpr(expr e)) stmts
+  (pe, List.map (function stmt -> match stmt with
+              Expr(e) -> SExpr(expr e)) stmts)

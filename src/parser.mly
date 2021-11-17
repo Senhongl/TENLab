@@ -45,21 +45,27 @@
 %right NOT
 
 %start main
-%type <Ast.stmt list> main
+%type <Ast.program> main
 
 %%
 
 main:
-  stmts EOF { $1 }
+  pes stmts EOF { ($1,$2) }
 
 
 /***************************************************************************************
                                 Statements
  ***************************************************************************************/
 
+pes:
+| { [] }
+| pe pes { $1::$2 }
+
 stmts:
 | { [] }
 | stmt stmts { $1::$2 }
+
+pe: PARALLEL_DEFINE IDENTIFIER LEFT_CURLY_BRACKET po_list RIGHT_CURLY_BRACKET { ($2, $4) }
 
 /*
  * A TENLab file should consist of a bunch of statements.
@@ -76,7 +82,6 @@ stmts:
  */
 stmt:
 | expr SEP { Expr($1) }
-| PARALLEL_DEFINE IDENTIFIER pe_body { PEDecl($2, $3) }
 | DEFINE func_signature stmt_body { FuncDecl($2, $3) }
 | IF LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt_body %prec NOELSE { IfStmt($3, $5, [EmptyStmt]) }
 | IF LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt_body ELSE stmt_body { IfStmt($3, $5, $7) }
@@ -136,26 +141,22 @@ reduce_func: REDUCE LEFT_CURLY_BRACKET stmts RIGHT_CURLY_BRACKET { ReduceFunc($3
 
 ***/
 
-
-pe_body: IDENTIFIER LEFT_CURLY_BRACKET po_list RIGHT_CURLY_BRACKET { $2 }
-
 po_list:
 | po { [$1] }
 | po po_list { $1 :: $2 }
 
-po: OVERLOAD OPERATOR_INDICATOR LEFT_PARENTHESIS params RIGHT_PARENTHESIS LEFT_CURLY_BRACKET map_funcs reduce_func RIGHT_CURLY_BRACKET
+po: OVERLOAD OPERATOR_INDICATOR LEFT_PARENTHESIS params RIGHT_PARENTHESIS LEFT_CURLY_BRACKET stmts map_funcs reduce_func RIGHT_CURLY_BRACKET
 { {
-operator = $2;
-params = $4;
-mapfuncs = $7;
-reducefunc = $8;
+  operator = $2;
+  params = $4;
+  headstmt = $7;
+  mapfuncs = $8;
+  reducefunc = $9;
 } }
 
 map_funcs:
-| map_func { [$1] }
-| map_func map_funcs { $1 :: $2 }
-
-map_func: MAP IDENTIFIER stmt_body { $3 }
+| MAP IDENTIFIER stmt_body { [($2, $3)] }
+| MAP IDENTIFIER stmt_body map_funcs { ($2, $3) :: $4 }
 
 reduce_func: REDUCE stmt_body { $2 }
 

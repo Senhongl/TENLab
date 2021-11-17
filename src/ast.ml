@@ -83,7 +83,6 @@ type stmt =
 | IfStmt of expr * stmt list * stmt list
 | ForStmt of string * expr * stmt list
 | WhileStmt of expr * stmt list
-| PEDecl of string * pofunc list
 
 
 (* Old Parallel Environment
@@ -96,14 +95,16 @@ type stmt =
 *)
 
 (* PE Declaration *)
+
 type pofunc = {
   operator : string;
   params : string list;
-  mapfuncs : stmt list list;
+  headstmt : stmt list;
+  mapfuncs : (string * stmt list) list;
   reducefunc : stmt list;
 }
 
-
+type program = (string * pofunc list) list * stmt list
 
 let string_of_bop = function
   Add -> "+"
@@ -147,6 +148,7 @@ let rec string_of_expr = function
 | Print(e1) -> "print(" ^ string_of_expr e1 ^ ")"
 | Shape(e1) -> "shape(" ^ string_of_expr e1 ^ ")"
 | Cat(e1, e2) -> "cat(" ^ string_of_expr e1 ^ "," ^ string_of_expr e2 ^ ")"
+| Abs(e1) -> "abs (" ^ string_of_expr e1 ^ ")"
 | Any(e1) -> "any (" ^ string_of_expr e1 ^ ")"
 | All(e1) -> "all (" ^ string_of_expr e1 ^ ")"
 | Sum(e1) -> "sum (" ^ string_of_expr e1 ^ ")"
@@ -186,12 +188,31 @@ let rec string_of_stmt = function
     | _ -> "if (" ^ string_of_expr e1 ^ ")\n{\n" ^ String.concat "," (List.map string_of_stmt s2) ^ "} else {" ^ String.concat "," (List.map string_of_stmt s3) ^ "\n}\n")
 | ForStmt(str1, e1, s1) -> "for (" ^ str1 ^ " in " ^ string_of_expr e1 ^ ") {\n" ^ String.concat "," (List.map string_of_stmt s1) ^ "\n}\n"
 | WhileStmt(e1, s1) -> "while (" ^ string_of_expr e1 ^ ") {\n" ^ String.concat "," (List.map string_of_stmt s1) ^ "\n}\n"
-(* Parallel Environment *)
+(* Old Parallel Environment *)
+(*
 | PEDecl(str1, s2) -> "para_def " ^ str1 ^ "{\n" ^ String.concat "," (List.map string_of_stmt s2) ^ "}\n"
 | POSign(str1, s2) -> "ol " ^ str1 ^ " (" ^ String.concat "," s2 ^ ") "
 | ParallelOperator(s1, s2) -> string_of_stmt s1 ^ "\n" ^ string_of_stmt s2
 | MapReduce(s1, s2) -> String.concat "," (List.map string_of_stmt s1) ^ "\n" ^ string_of_stmt s2
 | MapFunc(s1)->String.concat "," (List.map string_of_stmt s1) ^ "\n"
 | ReduceFunc(s1)->String.concat "," (List.map string_of_stmt s1) ^ "\n"
+*)
 
-and string_of_program l = String.concat "" (List.map string_of_stmt l) ^ "\n"
+let string_of_mapfunc (id, s) =
+    "map " ^ id ^ "{\n" ^ String.concat "" (List.map string_of_stmt s) ^ "}\n"
+
+let string_of_po po=
+    "Overload " ^ po.operator ^
+    "(" ^ String.concat "," po.params ^ ")" ^
+    "{\n" ^
+    String.concat "" (List.map string_of_stmt po.headstmt) ^
+    String.concat "" (List.map string_of_mapfunc po.mapfuncs) ^
+    "reduce " ^ "{\n" ^ String.concat "" (List.map string_of_stmt po.reducefunc) ^ "}\n" ^
+    "}\n"
+
+let string_of_pe (str1, p2) =
+    "parallel_define " ^ str1 ^ "{\n" ^ String.concat "" (List.map string_of_po p2) ^ "}\n"
+
+let string_of_program (pes,stmts) =
+    String.concat "" (List.map string_of_pe pes) ^
+    String.concat "" (List.map string_of_stmt stmts) ^ "\n"

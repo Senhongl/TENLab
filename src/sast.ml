@@ -3,7 +3,7 @@
 (* a hello world version of sast *)
 open Ast
 
-type sexpr = 
+type sexpr =
   SLit of literal
 | SElements of sexpr list
 | SIntTensor of sexpr
@@ -49,6 +49,8 @@ type sexpr =
 type sstmt =
   SExpr of sexpr
 
+type sprogram = (string * pofunc list) list * sstmt list
+
 let rec string_of_sexpr = function
   SLit(l) -> Ast.string_of_lit l
 | SPrint(se1) -> "print(" ^ string_of_sexpr se1 ^ ");"
@@ -56,4 +58,7 @@ let rec string_of_sexpr = function
 let rec string_of_sstmt = function
   SExpr(se1) -> string_of_sexpr se1
 
-and string_of_sprogram l = String.concat "" (List.map string_of_sstmt l) ^ "\n"
+
+let string_of_sprogram (pes,stmts) =
+    String.concat "" (List.map Ast.string_of_pe pes) ^
+    String.concat "" (List.map string_of_sstmt stmts) ^ "\n"
