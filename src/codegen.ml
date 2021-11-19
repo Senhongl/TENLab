@@ -30,13 +30,6 @@ let translate sstmts =
   and void_t  = L.void_type     context  in
   let str_t   = L.pointer_type  i8_t     in
 
-  let ltype_of_typ = function
-      A.Int   -> i32_t
-    | A.Float -> float_t
-    | A.String -> str_t
-    | A.Void  -> void_t
-  in
-
   let function_type = L.function_type i8_t [||] in
   let the_function = L.define_function "main" function_type the_module in
 
@@ -44,13 +37,26 @@ let translate sstmts =
       L.var_arg_function_type void_t [| L.pointer_type i8_t |] in
   let printf_func : L.llvalue = 
       L.declare_function "printf" printf_t the_module in
+  
+  let printi_t : L.lltype =
+      L.var_arg_function_type void_t [| L.pointer_type i8_t |] in
+  let printi_func : L.llvalue = 
+      L.declare_function "printi" printi_t the_module in
 
   let rec expr builder e = match e with
       SLit lit -> (match lit with
           A.IntLit    i -> L.const_int    i32_t   i
         | A.FloatLit  f -> L.const_float  float_t f
         | A.StringLit s -> L.build_global_stringptr (s ^ "\n") "string_ptr" builder)
-    | SPrint(se1) -> L.build_call printf_func [| expr builder se1 |] "" builder in
+    | SIntTensor(_) -> L.build_global_stringptr (string_of_sexpr e ^ "\n") "sinttensor" builder
+    | SFloatTensor(_) -> L.build_global_stringptr (string_of_sexpr e ^ "\n") "sfloattensor" builder
+    | SVarTensor(_) -> L.build_global_stringptr (string_of_sexpr e ^ "\n") "svartensor" builder
+    | SLRTensor(_) -> L.build_global_stringptr (string_of_sexpr e ^ "\n") "slrtensor" builder
+    | SNPTensor(_) -> L.build_global_stringptr (string_of_sexpr e ^ "\n") "snptensor" builder
+    | SLRTensors(_, _) -> L.build_global_stringptr (string_of_sexpr e ^ "\n") "slrtensors" builder
+    | SNPTensors(_, _) -> L.build_global_stringptr (string_of_sexpr e ^ "\n") "snptensors" builder
+    | STensor0(_) -> L.build_global_stringptr (string_of_sexpr e ^ "\n") "tensor0" builder
+    | SPrint(se1) -> L.build_call printi_func [| expr builder se1 |] "" builder in
   
   let rec stmt builder = function
       SExpr se -> ignore(expr builder se); builder in
