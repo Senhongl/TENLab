@@ -1,6 +1,6 @@
 .PHONY: test
 test: all test.sh
-	./test.sh tests/test-*.tl
+	./test.sh
 
 .PHONY: all
 all: tenlab.native
