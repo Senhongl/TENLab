@@ -110,10 +110,138 @@ let rec expr_check symbol_table expr = match expr with
 (* | FuncCall(e1, e2) -> 
     let  *)
 
-
-
-
-
+(* check_build-in_functions *)
+(* only IntTensor allowed in Any(), as we treat True and False as 1 and 0, return a 0-dim IntTensor() *)
+| Any(e) -> 
+  let CheckTup(t1, d10:d1_) = checkexpr(e) in 
+    (match t1 with 
+      | INT_Tensor -> CheckTup(IntTensor, d10::[]) 
+      | STRING_Tensor | FloatTensor | VAR_Tensor -> make_err (invalid_type "Any() function, only IntTensor allowed") 
+    ) 
+(* only IntTensor allowed in All(), as we treat True and False as 1 and 0, return a 0-dim IntTensor() *)
+| All(e) -> 
+  let CheckTup(t1, d10:d1_) = checkexpr(e) in 
+    (match t1 with 
+      | INT_Tensor -> CheckTup(IntTensor, d10::[]) 
+      | STRING_Tensor | FloatTensor | VAR_Tensor -> make_err (invalid_type "All() function, only IntTensor allowed") 
+    ) 
+(* only IntTensor and FloatTensor allowed in Sum(), return a 0-dim tensor with corresponding type tensor *)
+| Sum(e) -> 
+  let CheckTup(t1, d10:d1_) = checkexpr(e) in 
+    (match t1 with 
+      | INT_Tensor | FloatTensor  -> CheckTup(t1, d10::[]) 
+      | STRING_Tensor | VAR_Tensor -> make_err (invalid_type "Sum() function, only IntTensor and FloatTensor allowed") 
+    ) 
+(* only 0-dim or 1-dim IntTensor allowed in Ones(), e.g. Ones(1) or Ones(IntTensor([1,2,3])), return FloatTensor() *)
+| Ones(e) -> 
+  let CheckTup(t1, d10:d1_) = checkexpr(e) in 
+    (match t1 with 
+      | FloatTensor -> make_err (invalid_type "Ones() function, only IntTensor allowed")
+      | STRING_Tensor -> make_err (invalid_type "Ones() function, only IntTensor allowed") 
+      | VAR_Tensor -> make_err (invalid_type "Ones() function, only IntTensor allowed")
+    ) in
+    if List.length(d1_) <= 1 then CheckTup(FLOAT_Tensor, d10::d1_) (* TODO: need to know exact dims to create tensor *)
+    else make_err (invalid_dim "tensor should be 0-dim or 1-dim") 
+(* only 0-dim or 1-dim IntTensor allowed in Zeros(), e.g. Zeros(1) or Zeros(IntTensor([1,2,3])), return FloatTensor() *) 
+| Zeros(e) -> 
+  let CheckTup(t1, d10:d1_) = checkexpr(e) in 
+    (match t1 with 
+      | FloatTensor -> make_err (invalid_type "Zeros() function, only IntTensor allowed")
+      | STRING_Tensor -> make_err (invalid_type "Zeros() function, only IntTensor allowed") 
+      | VAR_Tensor -> make_err (invalid_type "Zeros() function, only IntTensor allowed")
+    ) in
+    if List.length(d1_) <= 1 then CheckTup(FLOAT_Tensor, d10::d1_) (* TODO: need to know exact dims to create tensor *)
+    else make_err (invalid_dim "tensor should be 0-dim or 1-dim")  
+(* return the first dimension as a 0-dim IntTensor *)
+| Len(e) -> 
+  let CheckTup(t1, d10:d1_) = checkexpr(e) in CheckTup(IntTensor, d10::[]) 
+(* return IntTensor with same shape, string literal not allowed *)
+| Int_Of(e) -> 
+  let CheckTup(t1, d10:d1_) = checkexpr(e) in 
+    (match t1 with 
+      | STRING_Tensor | VAR_Tensor -> make_err (invalid_type "INT_OF() function") 
+    ) in CheckTup(IntTensor, d10::d1_)
+(* return FloatTensor with same shape, string literal not allowed *)
+| Float_Of(e) -> 
+  let CheckTup(t1, d10:d1_) = checkexpr(e) in 
+    (match t1 with 
+      | STRING_Tensor | VAR_Tensor -> make_err (invalid_type "Float_Of() function") 
+    ) in CheckTup(FloatTensor, d10::d1_)
+(* return FloatTensor with same shape, string literal not allowed *)
+| Floor(e) -> 
+  let CheckTup(t1, d10:d1_) = checkexpr(e) in 
+    (match t1 with 
+      | STRING_Tensor | VAR_Tensor -> make_err (invalid_type "Floor() function") 
+    ) in CheckTup(FloatTensor, d10::d1_)
+(* return FloatTensor with same shape, string literal not allowed *)
+| Ceil(e) -> 
+  let CheckTup(t1, d10:d1_) = checkexpr(e) in 
+    (match t1 with 
+      | STRING_Tensor | VAR_Tensor -> make_err (invalid_type "Ceil() function") 
+    ) in CheckTup(FloatTensor, d10::d1_)
+(* return FloatTensor with same shape, string literal not allowed *)
+| Round(e) -> 
+  let CheckTup(t1, d10:d1_) = checkexpr(e) in 
+    (match t1 with 
+      | STRING_Tensor | VAR_Tensor -> make_err (invalid_type "Round() function") 
+    ) in CheckTup(FloatTensor, d10::d1_)
+(* return FloatTensor with same shape, string literal not allowed *)
+| Abs(e) -> 
+  let CheckTup(t1, d10:d1_) = checkexpr(e) in 
+    (match t1 with 
+      | STRING_Tensor | VAR_Tensor -> make_err (invalid_type "Abs() function") 
+    ) in CheckTup(FloatTensor, d10::d1_)
+(* return FloatTensor with same shape, string literal not allowed *)
+| Log(e) -> 
+  let CheckTup(t1, d10:d1_) = checkexpr(e) in 
+    (match t1 with 
+      | STRING_Tensor | VAR_Tensor -> make_err (invalid_type "Log() function") 
+    ) in CheckTup(FloatTensor, d10::d1_)
+(* return FloatTensor with same shape, string literal not allowed *)
+| Inverse(e) -> 
+  let CheckTup(t1, d10:d1_) = checkexpr(e) in 
+    (match t1 with 
+      | STRING_Tensor | VAR_Tensor -> make_err (invalid_type "Inverse() function") 
+    ) in CheckTup(FloatTensor, d10::d1_)
+(* return FloatTensor with same shape, string literal not allowed *)
+| Svd(e) -> 
+  let CheckTup(t1, d10:d1_) = checkexpr(e) in 
+    (match t1 with 
+      | STRING_Tensor | VAR_Tensor -> make_err (invalid_type "Svd() function") 
+    ) in CheckTup(FloatTensor, d10::d1_)
+(* return FloatTensor, Ax = b, A=mxn, b=mx1, return x=nx1 *)
+| Solve(e1, e2) -> 
+  let CheckTup(t1, d10:d1_) = checkexpr(e1) in 
+  let CheckTup(t2, d20:d2_) = checkexpr(e2) in
+  let t3 = 
+    (match t1, t2 with 
+      STRING_Tensor, _ -> make_err (invalid_type "Solve() function")
+    | _, STRING_Tensor -> make_err (invalid_type "Solve() function")
+    | VAR_Tensor, _ -> make_err (invalid_type "Solve() function")
+    | _, VAR_Tensor -> make_err (invalid_type "Solve() function")
+    | _, _ -> FLOAT_Tensor) in 
+    if List.length(d1_) <> 2 && List.length(d2_) <> 1 then make_err (invalid_dim "Solve() function only supports 2-dim tensor for first parameter and 1-dim tensor for second parameter")
+    else if List.hd(d1_) <> List.hd(d2_) then make_err (invalid_dim "mismatch of the dimension between two tensor")
+    else if List.length(d1_) = 2 && List.length(d2_) = 1 && List.hd(d1_) = List.hd(d2_) then CheckTup(t3, -1::List.td(d1_))
+    else make_err dummy_error
+(* return FloatTensor with same shape, string literal not allowed *)
+| Eig(e) -> 
+  let CheckTup(t1, d10:d1_) = checkexpr(e) in 
+    (match t1 with 
+      | STRING_Tensor | VAR_Tensor -> make_err (invalid_type "Eig() function") 
+    ) in
+    if List.length(d1_) <> 2 then make_err (invalid_dim "Eig() function only supports 2-dim tensor")
+    else if List.hd(d1_) <> List.tl(d1_) then make_err (invalid_dim "Eig() function only supports square tensor")
+    else CheckTup(FloatTensor, d10::d1_)
+(* return FloatTensor with same shape, string literal not allowed *)
+| Eigv(e) -> 
+  let CheckTup(t1, d10:d1_) = checkexpr(e) in 
+    (match t1 with 
+      | STRING_Tensor | VAR_Tensor -> make_err (invalid_type "Eigv() function") 
+    ) in
+    if List.length(d1_) <> 2 then make_err (invalid_dim "Eig() function only supports 2-dim tensor")
+    else if List.hd(d1_) <> List.tl(d1_) then make_err (invalid_dim "Eig() function only supports square tensor")
+    else CheckTup(FloatTensor, d10::d1_)
 
 
 
