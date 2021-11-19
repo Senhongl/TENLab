@@ -5,7 +5,7 @@ open Ast
 
 type sexpr = 
   SLit of literal
-| SElements of sexpr list
+| SId of string
 | SIntTensor of sexpr
 | SFloatTensor of sexpr
 | SVarTensor of sexpr
@@ -21,11 +21,11 @@ type sexpr =
 | SReturn of sexpr
 | SBreak
 | SContinue
-| SExit
+| SExit of sexpr
 (* Built-in functions *)
 | SPrint of sexpr
 | SShape of sexpr
-| SCat of sexpr * sexpr
+| SCat of sexpr * sexpr * sexpr
 | SAny of sexpr
 | SAll of sexpr
 | SSum of sexpr
@@ -44,9 +44,7 @@ type sexpr =
 | SSvd of sexpr
 | SEig of sexpr
 | SEigv of sexpr
-
-| SFuncCall of string * sexpr list
-| SAssign of string * sexpr
+| SFuncCall of sexpr * sexpr list
 
 type sstmt =
   SExpr of sexpr
