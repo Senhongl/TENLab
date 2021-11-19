@@ -108,7 +108,7 @@ let rec expr_check symbol_table expr = match expr with
     
     if List.length(d1_) = 0 && List.length(d2_) = 0 && List.length(d3_) = 0 then CheckTup(t1, d10::d1_)
 | FuncCall(e1, e2) -> 
-    let  *)
+:q!    let  *)
 
 (* check_build-in_functions *)
 (* only IntTensor allowed in Any(), as we treat True and False as 1 and 0, return a 0-dim IntTensor() *)
@@ -242,7 +242,3 @@ let rec expr_check symbol_table expr = match expr with
     if List.length(d1_) <> 2 then make_err (invalid_dim "Eig() function only supports 2-dim tensor")
     else if List.hd(d1_) <> List.tl(d1_) then make_err (invalid_dim "Eig() function only supports square tensor")
     else CheckTup(FloatTensor, d10::d1_)
-
-
-
-                      
