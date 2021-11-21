@@ -69,9 +69,10 @@ let rec check_tensor = function
 
 (* expr -> sexpr *)
 let rec check_expr = function
-  Binop(x1, op, x2) -> (VoidTup, SBinop(check_expr(x1), op, check_expr(x2)))
-| Tensor(x) -> let (TensorTup(t, n, d::d_), y) = check_tensor(x) in 
-    (TensorTup(t, n, d_), STensor(y))
+  Binop(x1, op, x2) -> (SVoidTup, SBinop(check_expr(x1), op, check_expr(x2)))
+| Tensor(x) -> match check_tensor(x) with 
+  | (TensorTup(t, n, d::d_), y) -> (STensorTup(t, n, Array.of_list d_), STensor(y))
+  | (_, _) -> raise (E "ought not occur")
 
 (*let rec print_dims = function 
   [] -> ()

@@ -3,7 +3,7 @@ module La = Llvm_analysis
 open Tensorsast
 open Tensorast
 
-let rec print_tensor = function 
+(*let rec print_tensor = function 
   [] -> print_char(')')
 | IntLit(e)::l -> print_int e; print_string ","; print_tensor l
 | FloatLit(e)::l -> print_float e; print_string ","; print_tensor l
@@ -19,7 +19,7 @@ let print_op = function
 let rec print_sast = function
   (t, SBinop(x1, op, x2)) -> print_dimtype t; 
     print_sast x1; print_op op; print_sast x2; print_char(')')
-| (t, STensor(x)) -> print_dimtype t; print_tensor(Array.to_list x)
+| (t, STensor(x)) -> print_dimtype t; print_tensor(Array.to_list x)*)
 
 let gen_array ltype arr =
   let n = Array.length arr in
@@ -43,13 +43,21 @@ let gen_dim ltype arr =
 
 let gen_value ltype value = L.const_int ltype value
 
+let set_constptr name lvalue lmodule ltype = 
+  let global_value = L.define_global name lvalue lmodule in
+    L.set_global_constant true global_value; 
+    L.set_linkage L.Linkage.Private global_value;
+    L.set_unnamed_addr true global_value;
+    L.const_bitcast global_value ltype
+
 let translate sast =
   let context = L.global_context() in
   let the_module = L.create_module context "TensorC" in 
 
     let i8_t = L.i8_type context 
-    and int_t   = L.i32_type context
-    and float_t = L.float_type context in
+    and int_t = L.i32_type context 
+    and float_t = L.float_type context 
+    and void_t = L.void_type context in
     let i8ptr_t = L.pointer_type i8_t
     and tensor_t = L.named_struct_type context "tensor_t" in
       L.struct_set_body tensor_t [| i8_t; i8_t; i8ptr_t; i8ptr_t |] false;
@@ -65,6 +73,10 @@ let translate sast =
       L.function_type i8ptr_t [| i8ptr_t; i8ptr_t |] in
     let mult_func : L.llvalue = 
       L.declare_function "mult" mult_t the_module in
+    let print_t : L.lltype = 
+      L.function_type void_t [| i8ptr_t |] in
+    let print_func : L.llvalue = 
+      L.declare_function "print" print_t the_module in
   
     let rec genExpr builder se = match se with
       (_, SBinop(se1, op, se2)) -> 
@@ -74,20 +86,21 @@ let translate sast =
           Add -> L.build_call add_func
         | Mul -> L.build_call mult_func
         ) [| se1_ ; se2_ |] "tmpOp" builder
-    | (TensorTup(t, n, d), STensor(y)) ->
+    | (STensorTup(t, n, d), STensor(y)) ->
         (match t with 
-          INT_Tensor -> L.const_bitcast (L.define_global "stensor" (L.const_named_struct tensor_t 
-            (let dims = L.const_bitcast (L.define_global "sdim" (gen_dim i8_t (Array.of_list d)) the_module) i8ptr_t
-            and data = L.const_bitcast (L.define_global "sdata" (gen_array int_t y) the_module) i8ptr_t
-            in [|gen_value i8_t 0; gen_value i8_t n; dims; data|])) the_module) i8ptr_t
-        | FLOAT_Tensor -> L.const_bitcast (L.const_named_struct tensor_t 
-            (let dims = L.const_bitcast (gen_dim i8_t (Array.of_list d)) i8ptr_t
-            and data = L.const_bitcast (gen_array float_t y) i8ptr_t
-            in [|gen_value i8_t 1; gen_value i8_t n; dims; data|])) i8ptr_t
-        ) in
+          INT_Tensor -> set_constptr "stensor" (L.const_named_struct tensor_t 
+            (let dims = set_constptr "sdim" (gen_dim i8_t d) the_module i8ptr_t
+            and data = set_constptr "sdata" (gen_array int_t y) the_module i8ptr_t
+            in [|gen_value i8_t 0; gen_value i8_t n; dims; data|])) the_module i8ptr_t
+        | FLOAT_Tensor -> set_constptr "stensor" (L.const_named_struct tensor_t 
+            (let dims = set_constptr "sdim" (gen_dim i8_t d) the_module i8ptr_t
+            and data = set_constptr "sdata" (gen_array float_t y) the_module i8ptr_t
+            in [|gen_value i8_t 1; gen_value i8_t n; dims; data|])) the_module i8ptr_t
+        ) 
+    | (_, _) -> gen_value i8ptr_t 0 in
 
   let builder = L.builder_at_end context (L.entry_block the_function) in
-  let builder = ignore(genExpr builder sast); builder in
+  let builder = ignore(L.build_call print_func [|(genExpr builder sast)|] "" builder); builder in
   ignore(L.build_ret (L.const_int i8_t 0) builder);
   the_module
 

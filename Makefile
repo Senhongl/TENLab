@@ -1,20 +1,25 @@
 target = tensorcodegen
+link-dir = func
+link-obj = add mult print
 
-dim.out : $(target).native dim.tb add.o mult.o
-	./$(target).native < dim.tb > dim.ll
+test.out : test.exe
+	./$< > $@
 
-add.o : add.c tensor.h
-	cc -c add.c
+test.exe : test.s $(foreach exe, $(link-obj), $(link-dir)/$(exe).o)
+	cc -o $@ $^
 
-mult.o : mult.c tensor.h
-	cc -c mult.c
+test.s : $(target).native test.tl
+	./$(target).native < test.tl > test.ll; \
+	llc -relocation-model=pic test.ll > test.s
 
 $(target).native : tensorscanner.mll tensorparser.mly tensorast.mli \
 					tensorsemant.ml tensorsast.mli tensorcodegen.ml
 	ocamlbuild $(target).native -pkgs llvm,llvm.analysis
 
 .PHONY : clean
-clean :
-	rm -rf *.out _build *.native *.o *.ll *.s
+clean : cleandir
+	rm -rf *.out _build *.native *.o *.ll *.s *.exe
+cleandir :
+	make -C func clean
 
 # clang -emit-llvm -S -c test.c -o test.ll
