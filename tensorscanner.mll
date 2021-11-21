@@ -9,10 +9,8 @@ rule tokenize = parse
 | ',' { C }
 | '[' { L }
 | ']' { R }
-| '(' { LP }
-| ')' { RP }
-| "int" { INT }
-| "float" { FLOAT }
+| '+' { ADD }
+| '*' { MUL }
 | digits as lit { INT_LITERAL(int_of_string lit) }
 | (digits '.' digit* exponent? | digits exponent | '.' digits exponent?) as lit { FLOAT_LITERAL(float_of_string lit) }
 | eof { EOF }
