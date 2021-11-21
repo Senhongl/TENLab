@@ -1,11 +1,16 @@
-#include "tensor.h"
+#include <stdio.h>
 
-void *add(void *a, void *b)
+void printi(void *s)
 {
-    /*tensor *x = (tensor *)a;
-    tensor *y = (tensor *)b;*/
+    printf("%s\n", s);
+}
 
-    /*if (x->type != y->type)
+/*void *add(void *a, void *b)
+{
+    tensor *x = (tensor *)a;
+    tensor *y = (tensor *)b;
+
+    if (x->type != y->type)
         die("Not consistent type");
     if (x->ndim != y->ndim)
         die("Not consistent ndim");
@@ -19,8 +24,8 @@ void *add(void *a, void *b)
             die("Not consistent dim %d", i);
         printf("%d, ", x->dims[i]);
     }
-    printf("\n");*/
-}
+    printf("\n");
+}*/
 
 #ifdef BUILD_TEST
 int main()
