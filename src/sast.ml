@@ -48,6 +48,7 @@ type sexpr =
 
 type sstmt =
   SExpr of sexpr
+| SAssign of sexpr * sexpr
 
 let rec string_of_sexpr = function
   SLit(l) -> string_of_lit l

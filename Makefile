@@ -11,8 +11,6 @@ tenlab.native:
 
 .PHONY: clean
 clean:
-	rm -rf *.cmi *.cmo
-	rm -rf parser.ml parser.mli
-	rm -rf scanner.ml
+	rm -rf *.ll *.out *.s *.diff *.exe
 	rm -rf tenlab.native
 	rm -rf _build

@@ -2,7 +2,7 @@
 
 open Ast
 open Sast
-open Echeck
+open Scheck
 
 module StringMap = Map.Make(String)
 (* Semantic checking of the AST. Returns an SAST if successful,
@@ -57,7 +57,11 @@ let check stmts =
 
   in
 
-  ignore(List.map (function stmt -> match stmt with
-                    Expr(e) -> expr_check symbol_table e) stmts);
-  List.map (function stmt -> match stmt with
-              Expr(e) -> SExpr(expr e)) stmts
+  let rec stmt = function
+    Expr(e) -> SExpr(expr e)
+  | Assign(e1, e2) -> SAssign(expr e1, expr e2)
+
+  in
+
+  (* ignore(List.map (stmt_check symbol_table) stmts); *)
+  List.map stmt stmts
