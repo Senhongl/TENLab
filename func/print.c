@@ -31,10 +31,19 @@ void print(void *a)
 {
     tensor *x = (tensor *)a;
 
-    if (x->ndim != 2)
-        die("Not support %d, Only support 2-dim", x->ndim);
+    if (x->ndim > 2)
+        die("Not support %d, Only support less than 2-dim", x->ndim);
     
-    int m = (int)x->dims[0], n = (int)x->dims[1];
+    int m, n;
+    if (x->ndim == 2) {
+        m = (int)x->dims[0];
+        n = (int)x->dims[1];
+    } else if (x->ndim == 1) {
+        m = (int)x->dims[0];
+    } else {
+        m = 1;
+    }
+    
 
     switch (x->type)
     {
