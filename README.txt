@@ -1,6 +1,6 @@
 	Environment
 =========================
-1. Download LibTorch from [1]
+1. Download LibTorch from [1] and unzip
 2. cmake > 3.11
 3. llvm 11
 4. OCaml 4.11
