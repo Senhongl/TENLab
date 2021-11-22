@@ -4,7 +4,8 @@ test.out : test
 	./$< > $@
 
 test : test.s
-	mkdir build && cd build && cmake .. && make
+	@if [ -d build ]; then echo "build exist"; else mkdir build; fi
+	cd build && cmake .. && make
 
 test.s : $(compiler).native test.tl
 	./$(compiler).native < test.tl > test.ll; \
@@ -18,6 +19,7 @@ $(compiler).native : tensorscanner.mll tensorparser.mly tensorast.mli \
 clean : cleandir
 	rm -rf *.out _build build *.native *.o *.ll *.s
 cleandir :
-	make -C build clean
+	@if [ -d build ]; then make -C build clean; \
+	else echo "build not exist"; fi
 
 # clang -emit-llvm -S -c test.c -o test.ll
