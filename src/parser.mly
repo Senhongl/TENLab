@@ -100,22 +100,22 @@ stmt_body: LEFT_CURLY_BRACKET stmts RIGHT_CURLY_BRACKET { $2 }
                         Function Call
  ***************************************************************************************/
 
-func_signature: IDENTIFIER LEFT_PARENTHESIS params RIGHT_PARENTHESIS { FuncSign(Id($1), $3) }
+func_signature: IDENTIFIER LEFT_PARENTHESIS params RIGHT_PARENTHESIS { FuncSign($1, $3) }
 
 /* We support the following form of function call:
  *      (i)  call the function directly
  *      (ii) call the function and assign the return value to variable(s)
  */
 // TODO: support a, b = foo(), foo()? *)
-func_call: IDENTIFIER LEFT_PARENTHESIS exprs RIGHT_PARENTHESIS { FuncCall(Id($1), $3) }
+func_call: IDENTIFIER LEFT_PARENTHESIS exprs RIGHT_PARENTHESIS { FuncCall(FId($1), $3) }
 
 exprs:
 | expr { [$1] }
 | expr COMMA exprs { $1 :: $3 }
 
 params:
-| IDENTIFIER { [Id($1)] }
-| IDENTIFIER COMMA params { Id($1) :: $3 }
+| IDENTIFIER { [$1] }
+| IDENTIFIER COMMA params { $1 :: $3 }
 
 /***************************************************************************************
                     Parallel Environment

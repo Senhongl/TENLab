@@ -12,6 +12,7 @@ module StringHash = Hashtbl.Make(struct
 end)
 
 let symbol_table = StringHash.create 10
+let function_table = StringHash.create 10
 
 let name_error id = "name " ^ id ^ " is not defined" 
 and invalid_type op = "invalid type for " ^ op
@@ -57,71 +58,29 @@ let rec check_tensor = function
       | _, _ -> raise (E "ought not occur"))
 
 (* expr -> sexpr *)
-let rec check_expr symbol_table = function
+let rec check_expr symbol_table function_table = function
   Id(id) -> if StringHash.mem symbol_table id then StringHash.find symbol_table id
             else raise (E "not defined")
-| Binop(x1, bop, x2) -> (SVoidTup, SBinop(check_expr symbol_table x1, bop, check_expr symbol_table x2))
+| FId(id) -> if StringHash.mem function_table id then (SVoidTup, SFId(id)) else raise (E "function not defined")
+| Binop(x1, bop, x2) -> (SVoidTup, SBinop(check_expr symbol_table function_table x1, bop, check_expr symbol_table function_table x2))
 | Tensor(x) -> (match check_tensor(x) with 
   | (TensorTup(t, n, d::d_), y) -> (STensorTup(t, n, Array.of_list d_), STensor(y))
   | (_, _) -> raise (E "ought not occur"))
-| Print(e) -> (SVoidTup, SPrint(check_expr symbol_table e))
+| Print(e) -> (SVoidTup, SPrint(check_expr symbol_table function_table e))
+| FuncCall(e1, e2) -> let e1_ = check_expr symbol_table function_table e1 in
+                      let e2_ = List.map (check_expr symbol_table function_table) e2 in
+                      let FId(id) = e1 in
+                      let argc = StringHash.find function_table id in
+                      if argc <> List.length(e2) then raise (E "the number of arguments mismatch")
+                      else (SVoidTup, SFuncCall(e1_, e2_))
 
 (* stmt -> sstmt *)
-let check_stmt symbol_table = function
-  Expr(e) -> SExpr(check_expr symbol_table e)
-| Assign(str1, e2) -> let sexpr = check_expr symbol_table e2 in
+let check_stmt symbol_table function_table = function
+  Expr(e) -> SExpr(check_expr symbol_table function_table e)
+| Assign(str1, e2) -> let sexpr = check_expr symbol_table function_table e2 in
                       ignore(StringHash.add symbol_table str1 sexpr); SAssign(str1, sexpr)
+| FuncSign(str1, str2) -> let argc = List.length(str2) in
+                          StringHash.add function_table str1 argc; SFuncSign(str1, str2)
 
 let check stmts = 
-  (* let rec expr = function
-    Id(i) -> SId(i)
-  | IntTensor(e1) -> SIntTensor(expr e1)
-  | FloatTensor(e1) -> SFloatTensor(expr e1)
-  | VarTensor(e1) -> SVarTensor(expr e1)
-  | LRTensor(e1) -> SLRTensor(expr e1)
-  | NPTensor(e1) -> SNPTensor(expr e1)
-  | LRTensors(e1, e2) -> SLRTensors(expr e1, expr e2)
-  | NPTensors(e1, e2) -> SNPTensors(expr e1, expr e2)
-  | Tensor0(e1) -> STensor0(expr e1)
-  | Binop(e1, bop, e2) -> SBinop(expr e1, bop, expr e2)
-  | Unop(uop, e1) -> SUnop(uop, expr e1)
-  | Range(e1, e2, e3) -> SRange(expr e1, expr e2, expr e3)
-  (* Keyword expression *)
-  | Return(e1) -> SReturn(expr e1)
-  | Break -> SBreak
-  | Continue -> SContinue
-  | Exit(e1) -> SExit(expr e1)
-  (* Built-in functions *)
-  | Print(e1) -> SPrint(expr e1)
-  | Shape(e1) -> SShape(expr e1)
-  | Cat(e1, e2, e3) -> SCat(expr e1, expr e2, expr e3)
-  | Any(e1) -> SAny(expr e1)
-  | All(e1) -> SAll(expr e1)
-  | Sum(e1) -> SSum(expr e1)
-  | Ones(e1) -> SOnes(expr e1)
-  | Zeros(e1) -> SZeros(expr e1)
-  | Len(e1) -> SLen(expr e1)
-  | Int_Of(e1) -> SInt_Of(expr e1)
-  | Float_Of(e1) -> SFloat_Of(expr e1)
-  | Floor(e1) -> SFloor(expr e1)
-  | Ceil(e1) -> SCeil(expr e1)
-  | Round(e1) -> SRound(expr e1)
-  | Abs(e1) -> SAbs(expr e1)
-  | Log(e1) -> SLog(expr e1)
-  | Inverse(e1) -> SInverse(expr e1)
-  | Solve(e1, e2) -> SSolve(expr e1, expr e2)
-  | Svd(e1) -> SSvd(expr e1)
-  | Eig(e1) -> SEig(expr e1)
-  | Eigv(e1) -> SEigv(expr e1)
-  | FuncCall(e1, e2) -> SFuncCall(expr e1, List.map expr e2)
-
-  in *)
-
-  (* let rec stmt = function
-    Expr(e) -> SExpr(expr e)
-  | Assign(e1, e2) -> SAssign(expr e1, expr e2)
-
-  in *)
-
-  List.map (check_stmt symbol_table) stmts
-  (* List.map stmt stmts *)
+  List.map (check_stmt symbol_table function_table) stmts

@@ -8,6 +8,7 @@ type sdimtype = STensorTup of tensortype * int * int array | SVoidTup
 type sexpr = sdimtype * sx
 and sx =
   SId of string
+| SFId of string
 | STensor of literal array
 | SBinop of sexpr * bop * sexpr
 | SUnop of uop * sexpr
@@ -39,11 +40,12 @@ and sx =
 type sstmt =
   SExpr of sexpr
 | SAssign of string * sexpr
- (* Keyword statement *)
-| SReturn of sexpr
+| SFuncSign of string * string list
+(* Keyword statement *)
+| SReturn of expr
 | SBreak
 | SContinue
-| SExit of sexpr
+| SExit of expr
 
 (* let rec string_of_sexpr = function
   SId(str1) -> str1

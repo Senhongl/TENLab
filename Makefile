@@ -11,6 +11,6 @@ tenlab.native:
 
 .PHONY: clean
 clean:
-	rm -rf *.ll *.out *.s *.diff *.exe
+	rm -rf *.ll *.out *.s *.diff *.exe *.err
 	rm -rf tenlab.native
 	rm -rf _build

@@ -31,6 +31,7 @@ type operator_name =
 
 type expr =
   Id of string
+| FId of string
 | Tensor of tensor
 | Binop of expr * bop * expr
 | Unop of uop * expr
@@ -73,16 +74,15 @@ type stmt =
   EmptyStmt
 | Expr of expr
 | Assign of string * expr
-| FuncSign of expr * expr list
+| FuncSign of string * string list
 | FuncDecl of stmt * stmt list
-| Tdecl of string list * stmt
 | IfStmt of expr * stmt list * stmt list
 | ForStmt of expr * expr * stmt list
 | WhileStmt of expr * stmt list
 (* Parallel Environment *)
 | PEDecl of expr * stmt list
 | PEInvoke of expr
-| POSign of string * expr list
+| POSign of string * string list
 | ParallelOperator of stmt * stmt
 | MapReduce of stmt list * stmt
 | MapFunc of expr * stmt list
@@ -134,6 +134,7 @@ let rec string_of_tensor = function
 
 let rec string_of_expr = function
   Id(str1) -> str1
+| FId(str1) -> str1
 | Tensor(t1) -> string_of_tensor t1
 | Binop(e1, bop, e2) -> string_of_expr e1 ^ " " ^ string_of_bop bop ^ " " ^ string_of_expr e2
 | Unop(uop, e1) -> string_of_uop uop ^ " " ^ string_of_expr e1
@@ -167,9 +168,8 @@ let rec string_of_stmt = function
   EmptyStmt -> ""
 | Expr(e1) -> string_of_expr e1 ^ ";\n"
 | Assign(str1, e2) -> (str1 ^ " = " ^ string_of_expr e2)
-| FuncSign(e1, e2) -> string_of_expr e1 ^ "(" ^ (String.concat "," (List.map string_of_expr e2)) ^ ")" ^ "\n"
+| FuncSign(str1, str2) -> str1 ^ "(" ^ (String.concat "," str2) ^ ")" ^ "\n"
 | FuncDecl(s1, s2) -> "def " ^ string_of_stmt s1 ^ "{\n" ^ String.concat "," (List.map string_of_stmt s2) ^ "}\n"
-| Tdecl(str1, s1) -> String.concat "," str1 ^ " = " ^ string_of_stmt s1 ^ "\n"
 | IfStmt(e1, s2, s3) -> (match s3 with
     | [EmptyStmt] -> "if (" ^ string_of_expr e1 ^ ")\n{\n" ^ String.concat "," (List.map string_of_stmt s2) ^ "}\n"
     | _ -> "if (" ^ string_of_expr e1 ^ ")\n{\n" ^ String.concat "," (List.map string_of_stmt s2) ^ "} else {" ^ String.concat "," (List.map string_of_stmt s3) ^ "\n}\n")
@@ -178,7 +178,7 @@ let rec string_of_stmt = function
 (* Parallel Environment *)
 | PEDecl(e1, s1) -> "parallel_define " ^ string_of_expr e1 ^ "{\n" ^ String.concat "," (List.map string_of_stmt s1) ^ "}\n"
 | PEInvoke(e1) -> "using " ^ string_of_expr e1
-| POSign(str1, e1) -> "    overload " ^ str1 ^ " (" ^ String.concat "," (List.map string_of_expr e1) ^ ") "
+| POSign(str1, str2) -> "    overload " ^ str1 ^ " (" ^ String.concat "," str2 ^ ") "
 | ParallelOperator(s1, s2) -> string_of_stmt s1 ^ "\n" ^ string_of_stmt s2
 | MapReduce(map, reduce) -> String.concat "\n" (List.map string_of_stmt map) ^ "\n" ^ string_of_stmt reduce
 | MapFunc(e1, s1)-> "        map " ^ string_of_expr e1 ^ "{\n" ^ String.concat "\n" (List.map string_of_stmt s1) ^ "}"
