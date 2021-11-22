@@ -18,7 +18,11 @@ module L = Llvm
 open Ast
 open Sast 
 
-module StringMap = Map.Make(String)
+module StringHash = Hashtbl.Make(struct
+  type t = string
+  let equal x y = x = y
+  let hash = Hashtbl.hash
+end)
 
 let gen_array ltype arr =
     let n = Array.length arr in
@@ -50,7 +54,7 @@ let global_value = L.define_global name lvalue lmodule in
     L.const_bitcast global_value ltype
     
 let translate sstmts =
-  let gloabl_symbol_table = StringMap.empty in
+  let global_symbol_table = StringHash.create 10 in
 
   let context = L.global_context() in
 
@@ -103,13 +107,18 @@ let translate sstmts =
             and data = set_constptr "sdata" (gen_array float_t y) the_module i8ptr_t
             in [|gen_value i8_t 1; gen_value i8_t n; dims; data|])) the_module i8ptr_t
         ) 
+    | (_, SPrint(se1)) -> let se1_ = genExpr builder se1 in
+                          L.build_call print_func [| se1_ |] "" builder
     | (_, _) -> gen_value i8ptr_t 0 in
 
   
-  let rec stmt builder = function
-      SExpr se -> ignore(genExpr builder se); builder in
+  let rec stmt symbol_table builder = function
+      SExpr(se) -> ignore(genExpr builder se); builder 
+    | SAssign(str1, se1) -> let llvalue = genExpr builder se1 in
+                            ignore(StringHash.add symbol_table str1 llvalue); builder
+  in
 
   let builder = L.builder_at_end context (L.entry_block the_function) in
-  let builder = List.fold_left stmt builder sstmts in
+  let builder = List.fold_left (stmt global_symbol_table) builder sstmts in
   ignore(L.build_ret (L.const_int i8_t 0) builder);
   the_module;

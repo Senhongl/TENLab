@@ -80,7 +80,7 @@ stmts:
 stmt:
 | expr SEP { Expr($1) }
 // TODO: support a, b = 1, 2?
-| IDENTIFIER ASSIGNMENT expr SEP { Assign(Id($1), $3) }
+| IDENTIFIER ASSIGNMENT expr SEP { Assign($1, $3) }
 | PARALLEL_DEFINE IDENTIFIER pe_body { PEDecl(Id($2), $3) }
 | USING IDENTIFIER { PEInvoke(Id($2)) }
 | DEFINE func_signature stmt_body { FuncDecl($2, $3) }
@@ -88,6 +88,11 @@ stmt:
 | IF LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt_body ELSE stmt_body { IfStmt($3, $5, $7) }
 | FOR LEFT_PARENTHESIS IDENTIFIER IN expr RIGHT_PARENTHESIS stmt_body { ForStmt(Id($3), $5, $7) }
 | WHILE LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt_body { WhileStmt($3, $5) }
+// keyword statements
+| RETURN expr { Return($2) }
+| BREAK { Break }
+| CONTINUE { Continue }
+| EXIT LEFT_PARENTHESIS expr RIGHT_PARENTHESIS { Exit($3) }
 
 stmt_body: LEFT_CURLY_BRACKET stmts RIGHT_CURLY_BRACKET { $2 }
 
@@ -143,15 +148,9 @@ reduce_func: REDUCE LEFT_CURLY_BRACKET stmts RIGHT_CURLY_BRACKET { ReduceFunc($3
         All possible expressions, including binary expression and unary expression
  ***************************************************************************************/
 expr:
-// 0-dim data type
-| INT_LITERAL { Lit(IntLit($1)) }
-| FLOAT_LITERAL { Lit(FloatLit($1)) }
-| STRING_LITERAL { Lit(StringLit($1)) }
 // multi-dim data type
 // TODO: String tensor?
-| INT LEFT_PARENTHESIS tensor RIGHT_PARENTHESIS { IntTensor($3) }
-| FLOAT LEFT_PARENTHESIS tensor RIGHT_PARENTHESIS { FloatTensor($3) }
-| VAR LEFT_PARENTHESIS tensor RIGHT_PARENTHESIS { VarTensor($3) }
+| tensor { Tensor($1) }
 // Indentifier
 | IDENTIFIER { Id($1) }
 // Expression within parenthesis
@@ -180,11 +179,6 @@ expr:
 | expr TRANSPOSE { Unop(Transpose, $1) }
 // A special expression, numerical range. *)
 | expr COLON expr COLON expr { Range($1, $3, $5) }
-// keyword expressions
-| RETURN expr { Return($2) }
-| BREAK { Break }
-| CONTINUE { Continue }
-| EXIT LEFT_PARENTHESIS expr RIGHT_PARENTHESIS { Exit($3) }
 // built-in functions
 // TODO: necessary to do the syntax check?
 | PRINT LEFT_PARENTHESIS expr RIGHT_PARENTHESIS { Print($3) }
@@ -215,7 +209,8 @@ expr:
 tensor:
     LEFT_SQUARE_BRACKET tensor COMMA n_tensor RIGHT_SQUARE_BRACKET { LRTensors($2, $4) }
   | LEFT_SQUARE_BRACKET tensor RIGHT_SQUARE_BRACKET { LRTensor($2) }
-  | expr { Tensor0($1) }
+  | INT_LITERAL { Tensor0(IntLit($1)) }
+  | FLOAT_LITERAL { Tensor0(FloatLit($1)) }
 
 n_tensor:
     tensor COMMA n_tensor { NPTensors($1, $3) }

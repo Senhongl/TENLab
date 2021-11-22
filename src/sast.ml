@@ -38,8 +38,7 @@ and sx =
 
 type sstmt =
   SExpr of sexpr
-| SVoid
-| SAssign of sexpr * sexpr
+| SAssign of string * sexpr
  (* Keyword statement *)
 | SReturn of sexpr
 | SBreak
