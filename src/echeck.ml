@@ -1,4 +1,5 @@
 open Ast
+open Sast
 
 exception E of string
 
@@ -17,239 +18,40 @@ let rec equal_dim d1 d2=
   | _, [] -> false
   | [], _ -> false
 
-type tensortype = FLOAT_Tensor | INT_Tensor | STRING_Tensor | VAR_Tensor
-
-type dimtype = CheckTup of tensortype * int list
-
-let rec expr_check symbol_table expr = match expr with
-  Lit(l) -> (match l with
-    IntLit(_) -> CheckTup(INT_Tensor, [-1])
-  | FloatLit(_) -> CheckTup(FLOAT_Tensor, [-1])
-  | StringLit(_) -> CheckTup(STRING_Tensor, [-1]))
-| Id(id) -> if StringMap.mem id symbol_table then StringMap.find id symbol_table
-            else make_err (name_error id)
-| IntTensor(x) -> (match expr_check symbol_table x with
-    CheckTup(t, d) -> 
-        if t = INT_Tensor then CheckTup(t, d) else make_err (invalid_type "tensor declaration"))
-| FloatTensor(x) -> (match expr_check symbol_table x with
-    CheckTup(t, d) -> 
-        if t = FLOAT_Tensor then CheckTup(t, d) else make_err (invalid_type "tensor declaration"))
-| Tensor0(x) -> expr_check symbol_table x
-| LRTensors(x1, x2) -> 
-    let td1 = expr_check symbol_table x1 in
-    let td2 = expr_check symbol_table x2 in
-      (match td1, td2 with
-        CheckTup(t1, d10::d1_), CheckTup(t2, d20::d2_) -> 
-          if t1 = t2 && equal_dim d1_ d2_ then CheckTup(t1, -1::-(d10 + d20)::d1_)
-          else if t1 <> t2 then make_err (invalid_type "tensor declaration")
-          else make_err (invalid_dim "tensor declaration")
-      | _, _ -> make_err dummy_error)
+let rec check_tensor = function
+  Tensor0(x) -> (match x with
+    IntLit(y) -> (TensorTup(INT_Tensor, 0, [-1]), [|x|])
+  | FloatLit(y) -> (TensorTup(FLOAT_Tensor, 0, [-1]), [|x|]))
 | LRTensor(x) -> 
-    (match expr_check symbol_table x with
-      CheckTup(t, d0::d_) -> CheckTup(t, -1::-d0::d_)
-    | CheckTup(_, []) -> make_err dummy_error)
-| NPTensor(x) -> expr_check symbol_table x
+    (match check_tensor(x) with
+      (TensorTup(t, nd, d0::d_), y) -> (TensorTup(t, nd+1, -1::-d0::d_), y)
+    | _ -> raise (E "ought not occur"))
+| NPTensor(x) -> check_tensor(x)
+| LRTensors(x1, x2) -> 
+    let tdy1 = check_tensor(x1) in
+    let tdy2 = check_tensor(x2) in
+      (match tdy1, tdy2 with
+        (TensorTup(t1, nd1, d10::d1_), y1), (TensorTup(t2, nd2, d20::d2_), y2) -> 
+          if t1 = t2 && equal_dim d1_ d2_ then 
+            (TensorTup(t1, nd1+1, -1::-(d10 + d20)::d1_), Array.append y1 y2)
+          else if t1 <> t2 then raise (E "invalid type")
+          else raise (E "invalid dim")
+      | _, _ -> raise (E "ought not occur"))
 | NPTensors(x1, x2) -> 
-    let td1 = expr_check symbol_table x1 in
-    let td2 = expr_check symbol_table x2 in
-      (match td1, td2 with
-        CheckTup(t1, d10::d1_), CheckTup(t2, d20::d2_) -> 
-          if t1 = t2 && equal_dim d1_ d2_ then CheckTup(t1, (d10 + d20)::d1_)
-          else if t1 <> t2 then make_err (invalid_type "tensor declaration")
-          else make_err (invalid_dim "tensor declaration")
-      | _, _ -> make_err dummy_error)
-| Binop(e1, bop, e2) -> 
-    let CheckTup(t1, d10::d1_) = expr_check symbol_table e1 in
-    let CheckTup(t2, d20::d2_) = expr_check symbol_table e2 in
-    let t3 = 
-      (match t1, t2 with 
-        STRING_Tensor, _ -> make_err (invalid_type "binary operator")
-      | _, STRING_Tensor -> make_err (invalid_type "binary operator")
-      | VAR_Tensor, _ -> make_err (invalid_type "binary operator")
-      | _, VAR_Tensor -> make_err (invalid_type "binary operator")
-      | INT_Tensor, INT_Tensor -> INT_Tensor
-      | _, _ -> FLOAT_Tensor) in
+    let tdy1 = check_tensor(x1) in
+    let tdy2 = check_tensor(x2) in
+      (match tdy1, tdy2 with
+        (TensorTup(t1, nd1, d10::d1_), y1), (TensorTup(t2, nd2, d20::d2_), y2) -> 
+          if t1 = t2 && equal_dim d1_ d2_ then 
+            (TensorTup(t1, nd1, (d10 + d20)::d1_), Array.append y1 y2)
+          else if t1 <> t2 then raise (E "invalid type")
+          else raise (E "invalid dim")
+      | _, _ -> raise (E "ought not occur"))
 
-      (match bop with
-        Add | Sub -> if equal_dim d1_ d2_ then CheckTup(t3, d10::d1_)
-               else if List.length(d2_) = 0 then CheckTup(t3, d10::d1_)
-               else make_err (invalid_dim "operands don't support with different shapes")
-      | Mul -> if List.length(d1_) <> 2 && List.length(d2_) <> 2 then make_err (invalid_dim "operands support only 2-dim multiplication") 
-               else if List.hd(List.tl(d1_)) <> List.hd(d2_) then make_err (invalid_dim "mismatch of the dimension between two tensor")
-               else if List.hd(d1_) = 2 && List.length(d2_) = 2 && List.hd(List.tl(d1_)) = List.hd(d2_) then CheckTup(t3, -1::[List.hd(d1_); List.hd(List.tl(d2_))])
-               else make_err dummy_error
-      | DotMul | DotPow -> if equal_dim d1_ d2_ then CheckTup(t3, d10::d1_)
-                           else make_err (invalid_dim "operands don't support with different shapes")
-      | Div -> if List.length(d2_) = 0 then CheckTup(FLOAT_Tensor, d10::d1_)
-               else make_err (invalid_dim "second tensor should be 0-dim")
-      | Pow | Mod -> if List.length(d2_) = 0 then CheckTup(t3, d10::d1_)
-                     else make_err (invalid_dim "second tensor should be 0-dim")
-      | FlrDiv -> if List.length(d2_) = 0 then CheckTup(INT_Tensor, d10::d1_)
-                  else make_err (invalid_dim "second tensor should be 0-dim")
-      )
-| Unop(uop, e1) -> 
-    let CheckTup(t1, d10::d1_) = expr_check symbol_table e1 in
+(* expr -> sexpr *)
+let rec check_expr symbol_table = function
+  Binop(x1, bop, x2) -> (SVoidTup, SBinop(check_expr symbol_table x1, bop, check_expr symbol_table x2))
+| Tensor(x) -> match check_tensor(x) with 
+  | (TensorTup(t, n, d::d_), y) -> (STensorTup(t, n, Array.of_list d_), STensor(y))
+  | (_, _) -> raise (E "ought not occur")
 
-    (match uop with
-      Transpose -> CheckTup(t1, d10::List.rev d1_)
-    | Not | Neg -> 
-      (match t1 with
-        INT_Tensor | FLOAT_Tensor -> CheckTup(t1, d10::d1_)
-      | FLOAT_Tensor | VAR_Tensor -> make_err (invalid_type "unary operator")))
-| Print(e1) -> expr_check symbol_table e1
-(* | Range(e1, e2, e3) -> 
-    let CheckTup(t1, d10::d1_) = check_expr(e1) in
-    let CheckTup(t2, d20::d2_) = check_expr(e2) in
-    let CheckTup(t3, d30::d3_) = check_expr(e3) in
-    let t4 =
-      (match t1, t2, t3 with
-        INT_Tensor, INT_Tensor, INT_Tensor -> INT_Tensor
-      | _, _, _ -> make_err (invalid_type "creating range")) in
-    
-    if List.length(d1_) = 0 && List.length(d2_) = 0 && List.length(d3_) = 0 then CheckTup(t1, d10::d1_)
-| FuncCall(e1, e2) -> 
-:q!    let  *)
-
-(* check_build-in_functions *)
-(* only IntTensor allowed in Any(), as we treat True and False as 1 and 0, return a 0-dim IntTensor() *)
-| Any(e) -> 
-  let CheckTup(t1, d10::d1_) = expr_check symbol_table e in 
-    (match t1 with 
-      | INT_Tensor -> CheckTup(INT_Tensor, d10::[]) 
-      | STRING_Tensor | FLOAT_Tensor | VAR_Tensor -> make_err (invalid_type "Any() function, only IntTensor allowed") 
-    ) 
-(* only IntTensor allowed in All(), as we treat True and False as 1 and 0, return a 0-dim IntTensor() *)
-| All(e) -> 
-  let CheckTup(t1, d10::d1_) = expr_check symbol_table e in 
-    (match t1 with 
-      | INT_Tensor -> CheckTup(INT_Tensor, d10::[]) 
-      | STRING_Tensor | FLOAT_Tensor | VAR_Tensor -> make_err (invalid_type "All() function, only IntTensor allowed") 
-    ) 
-(* only IntTensor and FloatTensor allowed in Sum(), return a 0-dim tensor with corresponding type tensor *)
-| Sum(e) -> 
-  let CheckTup(t1, d10::d1_) = expr_check symbol_table e in 
-    (match t1 with 
-      | INT_Tensor | FLOAT_Tensor  -> CheckTup(t1, d10::[]) 
-      | STRING_Tensor | VAR_Tensor -> make_err (invalid_type "Sum() function, only IntTensor and FloatTensor allowed") 
-    ) 
-(* only 0-dim or 1-dim IntTensor allowed in Ones(), e.g. Ones(1) or Ones(IntTensor([1,2,3])), return FloatTensor() *)
-| Ones(e) -> 
-  let CheckTup(t1, d10::d1_) = expr_check symbol_table e in 
-    (match t1 with 
-      | FLOAT_Tensor -> make_err (invalid_type "Ones() function, only IntTensor allowed")
-      | STRING_Tensor -> make_err (invalid_type "Ones() function, only IntTensor allowed") 
-      | VAR_Tensor -> make_err (invalid_type "Ones() function, only IntTensor allowed")
-      | INT_Tensor -> if List.length(d1_) <= 1 then CheckTup(FLOAT_Tensor, d10::d1_) (* TODO: need to know exact dims to create tensor *)
-                     else make_err (invalid_dim "tensor should be 0-dim or 1-dim") 
-    )
-(* only 0-dim or 1-dim IntTensor allowed in Zeros(), e.g. Zeros(1) or Zeros(IntTensor([1,2,3])), return FloatTensor() *) 
-| Zeros(e) -> 
-  let CheckTup(t1, d10::d1_) = expr_check symbol_table e in 
-    (match t1 with 
-      | FLOAT_Tensor -> make_err (invalid_type "Zeros() function, only IntTensor allowed")
-      | STRING_Tensor -> make_err (invalid_type "Zeros() function, only IntTensor allowed") 
-      | VAR_Tensor -> make_err (invalid_type "Zeros() function, only IntTensor allowed")
-      | INT_Tensor -> if List.length(d1_) <= 1 then CheckTup(FLOAT_Tensor, d10::d1_) (* TODO: need to know exact dims to create tensor *)
-                     else make_err (invalid_dim "tensor should be 0-dim or 1-dim") 
-    )
-(* return the first dimension as a 0-dim IntTensor *)
-| Len(e) -> 
-  let CheckTup(t1, d10::d1_) = expr_check symbol_table e in CheckTup(INT_Tensor, d10::[]) 
-(* return IntTensor with same shape, string literal not allowed *)
-| Int_Of(e) -> 
-  let CheckTup(t1, d10::d1_) = expr_check symbol_table e in 
-    (match t1 with 
-      | STRING_Tensor | VAR_Tensor -> make_err (invalid_type "INT_OF() function") 
-      | _ -> CheckTup(INT_Tensor, d10::d1_)
-    )
-(* return FloatTensor with same shape, string literal not allowed *)
-| Float_Of(e) -> 
-  let CheckTup(t1, d10::d1_) = expr_check symbol_table e in 
-    (match t1 with 
-      | STRING_Tensor | VAR_Tensor -> make_err (invalid_type "Float_Of() function") 
-      | _ -> CheckTup(FLOAT_Tensor, d10::d1_)
-    )
-(* return FloatTensor with same shape, string literal not allowed *)
-| Floor(e) -> 
-  let CheckTup(t1, d10::d1_) = expr_check symbol_table e in 
-    (match t1 with 
-      | STRING_Tensor | VAR_Tensor -> make_err (invalid_type "Floor() function") 
-      | _ -> CheckTup(FLOAT_Tensor, d10::d1_)
-    )
-(* return FloatTensor with same shape, string literal not allowed *)
-| Ceil(e) -> 
-  let CheckTup(t1, d10::d1_) = expr_check symbol_table e in 
-    (match t1 with 
-      | STRING_Tensor | VAR_Tensor -> make_err (invalid_type "Ceil() function") 
-      | _ -> CheckTup(FLOAT_Tensor, d10::d1_)
-    )
-(* return FloatTensor with same shape, string literal not allowed *)
-| Round(e) -> 
-  let CheckTup(t1, d10::d1_) = expr_check symbol_table e in 
-    (match t1 with 
-      | STRING_Tensor | VAR_Tensor -> make_err (invalid_type "Round() function") 
-      | _ -> CheckTup(FLOAT_Tensor, d10::d1_)
-    )
-(* return FloatTensor with same shape, string literal not allowed *)
-| Abs(e) -> 
-  let CheckTup(t1, d10::d1_) = expr_check symbol_table e in 
-    (match t1 with 
-      | STRING_Tensor | VAR_Tensor -> make_err (invalid_type "Abs() function") 
-      | _ -> CheckTup(FLOAT_Tensor, d10::d1_)
-    )
-(* return FloatTensor with same shape, string literal not allowed *)
-| Log(e) -> 
-  let CheckTup(t1, d10::d1_) = expr_check symbol_table e in 
-    (match t1 with 
-      | STRING_Tensor | VAR_Tensor -> make_err (invalid_type "Log() function") 
-      | _ -> CheckTup(FLOAT_Tensor, d10::d1_)
-    )
-(* return FloatTensor with same shape, string literal not allowed *)
-| Inverse(e) -> 
-  let CheckTup(t1, d10::d1_) = expr_check symbol_table e in 
-    (match t1 with 
-      | STRING_Tensor | VAR_Tensor -> make_err (invalid_type "Inverse() function") 
-      | _ -> CheckTup(FLOAT_Tensor, d10::d1_)
-    )
-(* return FloatTensor with same shape, string literal not allowed *)
-| Svd(e) -> 
-  let CheckTup(t1, d10::d1_) = expr_check symbol_table e in 
-    (match t1 with 
-      | STRING_Tensor | VAR_Tensor -> make_err (invalid_type "Svd() function") 
-      | _ -> CheckTup(FLOAT_Tensor, d10::d1_)
-    )
-(* return FloatTensor, Ax = b, A=mxn, b=mx1, return x=nx1 *)
-| Solve(e1, e2) -> 
-  let CheckTup(t1, d10::d1_) = expr_check symbol_table e1 in 
-  let CheckTup(t2, d20::d2_) = expr_check symbol_table e2 in
-  let t3 = 
-    (match t1, t2 with 
-      STRING_Tensor, _ -> make_err (invalid_type "Solve() function")
-    | _, STRING_Tensor -> make_err (invalid_type "Solve() function")
-    | VAR_Tensor, _ -> make_err (invalid_type "Solve() function")
-    | _, VAR_Tensor -> make_err (invalid_type "Solve() function")
-    | _, _ -> FLOAT_Tensor) in 
-    if List.length(d1_) <> 2 && List.length(d2_) <> 1 then make_err (invalid_dim "Solve() function only supports 2-dim tensor for first parameter and 1-dim tensor for second parameter")
-    else if List.hd(d1_) <> List.hd(d2_) then make_err (invalid_dim "mismatch of the dimension between two tensor")
-    else if List.length(d1_) = 2 && List.length(d2_) = 1 && List.hd(d1_) = List.hd(d2_) then CheckTup(t3, -1::d1_)
-    else make_err dummy_error
-(* return FloatTensor with same shape, string literal not allowed *)
-| Eig(e) -> 
-  let CheckTup(t1, d10::d1_) = expr_check symbol_table e in 
-    (match t1 with 
-      | STRING_Tensor | VAR_Tensor -> make_err (invalid_type "Eig() function") 
-      | _ -> if List.length(d1_) <> 2 then make_err (invalid_dim "Eig() function only supports 2-dim tensor")
-             else if List.hd(d1_) <> List.hd(List.tl(d1_)) then make_err (invalid_dim "Eig() function only supports square tensor")
-             else CheckTup(FLOAT_Tensor, d10::d1_)
-    )
-    
-(* return FloatTensor with same shape, string literal not allowed *)
-| Eigv(e) -> 
-  let CheckTup(t1, d10::d1_) = expr_check symbol_table e in 
-    (match t1 with 
-      | STRING_Tensor | VAR_Tensor -> make_err (invalid_type "Eigv() function") 
-      | _ -> if List.length(d1_) <> 2 then make_err (invalid_dim "Eig() function only supports 2-dim tensor")
-             else if List.hd(d1_) <> List.hd(List.tl(d1_)) then make_err (invalid_dim "Eig() function only supports square tensor")
-             else CheckTup(FLOAT_Tensor, d10::d1_)
-    )
-    

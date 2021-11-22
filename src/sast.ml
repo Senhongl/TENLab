@@ -3,25 +3,15 @@
 (* a hello world version of sast *)
 open Ast
 
-type sexpr = 
-  SLit of literal
-| SId of string
-| SIntTensor of sexpr
-| SFloatTensor of sexpr
-| SVarTensor of sexpr
-| SLRTensor of sexpr
-| SNPTensor of sexpr
-| SLRTensors of sexpr * sexpr
-| SNPTensors of sexpr * sexpr
-| STensor0 of sexpr
+type sdimtype = STensorTup of tensortype * int * int array | SVoidTup
+
+type sexpr = sdimtype * sx
+and sx =
+  SId of string
+| STensor of literal array
 | SBinop of sexpr * bop * sexpr
 | SUnop of uop * sexpr
 | SRange of sexpr * sexpr * sexpr
-(* Keyword expression *)
-| SReturn of sexpr
-| SBreak
-| SContinue
-| SExit of sexpr
 (* Built-in functions *)
 | SPrint of sexpr
 | SShape of sexpr
@@ -48,18 +38,20 @@ type sexpr =
 
 type sstmt =
   SExpr of sexpr
+| SVoid
 | SAssign of sexpr * sexpr
+ (* Keyword statement *)
+| SReturn of sexpr
+| SBreak
+| SContinue
+| SExit of sexpr
 
-let rec string_of_sexpr = function
-  SLit(l) -> string_of_lit l
-| SId(str1) -> str1
+(* let rec string_of_sexpr = function
+  SId(str1) -> str1
+| STensor(st1) -> string
 | SBinop(se1, bop, se2) -> string_of_sexpr se1 ^ " " ^ string_of_bop bop ^ " " ^ string_of_sexpr se2
 | SUnop(uop, se1) -> string_of_uop uop ^ " " ^ string_of_sexpr se1
 | SRange(se1, se2, se3) -> string_of_sexpr se1 ^ ":" ^ string_of_sexpr se2 ^ ":" ^ string_of_sexpr se3
-| SReturn(se1) -> "return " ^ string_of_sexpr se1 ^ "\n"
-| SBreak -> "break\n"
-| SContinue -> "continue\n"
-| SExit(se1) -> "exit" ^ string_of_sexpr se1 ^ "\n"
 
 (* built-in functions *)
 | SPrint(se1) -> "print(" ^ string_of_sexpr se1 ^ ")"
@@ -85,16 +77,12 @@ let rec string_of_sexpr = function
 | Eigv(e1) -> "Eigv (" ^ string_of_expr e1 ^ ")"
 | FuncCall(e1, e2) -> (string_of_expr e1 ^ "(" ^ (String.concat "," (List.map string_of_expr e2))) ^ ")" *)
 
-| STensor0(se1) -> string_of_sexpr se1
-| SLRTensor(se1) -> "[" ^ string_of_sexpr se1 ^ "]"
-| SNPTensor(se1) -> string_of_sexpr se1
-| SLRTensors(se1, se2) -> "[" ^ string_of_sexpr se1 ^ ", " ^ string_of_sexpr se2 ^ "]"
-| SNPTensors(se1, se2) -> string_of_sexpr se1 ^ ", " ^ string_of_sexpr se2
-| SIntTensor(se1) -> "int(" ^ string_of_sexpr se1 ^ ")"
-| SFloatTensor(se1) -> "float(" ^ string_of_sexpr se1 ^ ")"
-| SVarTensor(se1) -> "var(" ^ string_of_sexpr se1 ^ ")"
-
 let rec string_of_sstmt = function
   SExpr(se1) -> string_of_sexpr se1 ^ ";"
+| SReturn(se1) -> "return " ^ string_of_sexpr se1 ^ "\n"
+| SBreak -> "break\n"
+| SContinue -> "continue\n"
+| SExit(se1) -> "exit" ^ string_of_sexpr se1 ^ "\n"
 
-and string_of_sprogram l = String.concat "" (List.map string_of_sstmt l) ^ "\n"
+and string_of_sprogram l = String.concat "" (List.map string_of_sstmt l) ^ "\n" *)
+let string_of_sprogram l = "TODO!"

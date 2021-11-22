@@ -10,8 +10,10 @@ Add | Sub | Mul | DotMul | Div | Pow | DotPow | Mod | FlrDiv
 
 (* Logical operators *)
 | And | Or
+   
+type tensortype = INT_Tensor | FLOAT_Tensor | STRING_Tensor | VAR_Tensor
 
-type typ = Int | Float | String | Void
+type dimtype = TensorTup of tensortype * int * int list | VoidTup
 
 (* Unary operators *)
 type uop = Not | Neg | Transpose
@@ -28,24 +30,11 @@ type operator_name =
 | MulSymbol
 
 type expr =
-  Lit of literal
-| Id of string
-| IntTensor of expr
-| FloatTensor of expr
-| VarTensor of expr
-| LRTensor of expr
-| NPTensor of expr
-| LRTensors of expr * expr
-| NPTensors of expr * expr
-| Tensor0 of expr
+  Id of string
+| Tensor of tensor
 | Binop of expr * bop * expr
 | Unop of uop * expr
 | Range of expr * expr * expr
-(* Keyword expression *)
-| Return of expr
-| Break
-| Continue
-| Exit of expr
 (* Built-in functions *)
 | Print of expr
 | Shape of expr
@@ -71,6 +60,14 @@ type expr =
 
 | FuncCall of expr * expr list
 
+(* Tensor *)
+and tensor = 
+  LRTensor of tensor
+| NPTensor of tensor
+| LRTensors of tensor * tensor
+| NPTensors of tensor * tensor
+| Tensor0 of literal
+
 (* Statements *)
 type stmt =
   EmptyStmt
@@ -90,6 +87,11 @@ type stmt =
 | MapReduce of stmt list * stmt
 | MapFunc of expr * stmt list
 | ReduceFunc of stmt list
+(* Keyword statement *)
+| Return of expr
+| Break
+| Continue
+| Exit of expr
 
 
 let string_of_bop = function
@@ -122,16 +124,20 @@ let string_of_lit = function
 | FloatLit(l) -> string_of_float l
 | StringLit(l) -> "\"" ^ l ^ "\""
 
+let rec string_of_tensor = function
+  Tensor0(l) -> string_of_lit l
+| LRTensor(t1) -> "[" ^ string_of_tensor t1 ^ "]"
+| NPTensor(t1) -> string_of_tensor t1
+| LRTensors(t1, t2) -> "[" ^ string_of_tensor t1 ^ ", " ^ string_of_tensor t2 ^ "]"
+| NPTensors(t1, t2) -> string_of_tensor t1 ^ ", " ^ string_of_tensor t2
+
+
 let rec string_of_expr = function
-  Lit(l) -> string_of_lit l
-| Id(str1) -> str1
+  Id(str1) -> str1
+| Tensor(t1) -> string_of_tensor t1
 | Binop(e1, bop, e2) -> string_of_expr e1 ^ " " ^ string_of_bop bop ^ " " ^ string_of_expr e2
 | Unop(uop, e1) -> string_of_uop uop ^ " " ^ string_of_expr e1
 | Range(e1, e2, e3) -> string_of_expr e1 ^ ":" ^ string_of_expr e2 ^ ":" ^ string_of_expr e3
-| Return(e1) -> "return " ^ string_of_expr e1 ^ "\n"
-| Break -> "break\n"
-| Continue -> "continue\n"
-| Exit(e1) -> "exit" ^ string_of_expr e1 ^ "\n"
 
 (* built-in functions *)
 | Print(e1) -> "print(" ^ string_of_expr e1 ^ ")"
@@ -157,15 +163,6 @@ let rec string_of_expr = function
 | Eigv(e1) -> "Eigv (" ^ string_of_expr e1 ^ ")"
 | FuncCall(e1, e2) -> (string_of_expr e1 ^ "(" ^ (String.concat "," (List.map string_of_expr e2))) ^ ")"
 
-| Tensor0(e1) -> string_of_expr(e1)
-| LRTensor(e1) -> "[" ^ string_of_expr e1 ^ "]"
-| NPTensor(e1) -> string_of_expr(e1)
-| LRTensors(e1, e2) -> "[" ^ string_of_expr e1 ^ ", " ^ string_of_expr e2 ^ "]"
-| NPTensors(e1, e2) -> string_of_expr e1 ^ ", " ^ string_of_expr e2
-| IntTensor(e1) -> "int(" ^ string_of_expr e1 ^ ")"
-| FloatTensor(e1) -> "float(" ^ string_of_expr e1 ^ ")"
-| VarTensor(e1) -> "var(" ^ string_of_expr e1 ^ ")"
-
 let rec string_of_stmt = function
   EmptyStmt -> ""
 | Expr(e1) -> string_of_expr e1 ^ ";\n"
@@ -186,5 +183,9 @@ let rec string_of_stmt = function
 | MapReduce(map, reduce) -> String.concat "\n" (List.map string_of_stmt map) ^ "\n" ^ string_of_stmt reduce
 | MapFunc(e1, s1)-> "        map " ^ string_of_expr e1 ^ "{\n" ^ String.concat "\n" (List.map string_of_stmt s1) ^ "}"
 | ReduceFunc(s1)-> "        reduce {\n" ^ String.concat "\n" (List.map string_of_stmt s1) ^ "}"
+| Return(e1) -> "return " ^ string_of_expr e1 ^ "\n"
+| Break -> "break\n"
+| Continue -> "continue\n"
+| Exit(e1) -> "exit" ^ string_of_expr e1 ^ "\n"
 
 and string_of_program l = String.concat "" (List.map string_of_stmt l) ^ "\n"

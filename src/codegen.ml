@@ -15,51 +15,99 @@ http://llvm.moe/ocaml/
 (* a hello world version of codegen *)
 
 module L = Llvm
-module A = Ast
+open Ast
 open Sast 
 
+module StringMap = Map.Make(String)
+
+let gen_array ltype arr =
+    let n = Array.length arr in
+    let newarray = Array.make n 
+      (match arr.(0) with
+        IntLit(x) -> L.const_int ltype 0
+      | FloatLit(x) -> L.const_float ltype 0.) in
+    for i = 0 to (Array.length arr)-1 do
+      newarray.(i) <-  
+        (match arr.(i) with
+          IntLit(x) -> L.const_int ltype x
+        | FloatLit(x) -> L.const_float ltype x)
+    done; L.const_array ltype newarray
+  
+let gen_dim ltype arr = 
+let n = Array.length arr in
+let newarray = Array.make n (L.const_int ltype 0) in
+for i = 0 to (Array.length arr)-1 do
+    newarray.(i) <-  L.const_int ltype arr.(i)
+done; L.const_array ltype newarray
+
+let gen_value ltype value = L.const_int ltype value
+
+let set_constptr name lvalue lmodule ltype = 
+let global_value = L.define_global name lvalue lmodule in
+    L.set_global_constant true global_value; 
+    L.set_linkage L.Linkage.Private global_value;
+    L.set_unnamed_addr true global_value;
+    L.const_bitcast global_value ltype
+    
 let translate sstmts =
+  let gloabl_symbol_table = StringMap.empty in
+
   let context = L.global_context() in
 
   let the_module = L.create_module context "TENLab" in
 
   (* TODO: How to support tensor? Seems like it can be supported directly. *)
-  let i32_t   = L.i32_type      context
-  and i8_t    = L.i8_type       context
-  and float_t = L.double_type   context
-  and void_t  = L.void_type     context  in
-  let str_t   = L.pointer_type  i8_t     in
+  let int_t     = L.i32_type      context
+  and i8_t      = L.i8_type       context
+  and float_t   = L.double_type   context
+  and void_t    = L.void_type     context  in
+  let i8ptr_t   = L.pointer_type  i8_t
+  and tensor_t = L.named_struct_type context "tensor_t" in
+        L.struct_set_body tensor_t [| i8_t; i8_t; i8ptr_t; i8ptr_t |] false;
 
+  (* init *)
   let function_type = L.function_type i8_t [||] in
   let the_function = L.define_function "main" function_type the_module in
 
-  let printf_t : L.lltype = 
-      L.var_arg_function_type void_t [| L.pointer_type i8_t |] in
-  let printf_func : L.llvalue = 
-      L.declare_function "printf" printf_t the_module in
-  
-  let printi_t : L.lltype =
-      L.var_arg_function_type void_t [| L.pointer_type i8_t |] in
-  let printi_func : L.llvalue = 
-      L.declare_function "printi" printi_t the_module in
+  (* built-in function *)
+  let add_t : L.lltype = 
+  L.function_type i8ptr_t [| i8ptr_t; i8ptr_t |] in
+  let add_func : L.llvalue = 
+  L.declare_function "add" add_t the_module in
+  let mult_t : L.lltype = 
+  L.function_type i8ptr_t [| i8ptr_t; i8ptr_t |] in
+  let mult_func : L.llvalue = 
+  L.declare_function "mult" mult_t the_module in
+  let print_t : L.lltype = 
+  L.function_type void_t [| i8ptr_t |] in
+  let print_func : L.llvalue = 
+  L.declare_function "print" print_t the_module in
 
-  let rec expr builder e = match e with
-      SLit lit -> (match lit with
-          A.IntLit    i -> L.const_int    i32_t   i
-        | A.FloatLit  f -> L.const_float  float_t f
-        | A.StringLit s -> L.build_global_stringptr (s ^ "\n") "string_ptr" builder)
-    | SIntTensor(_) -> L.build_global_stringptr (string_of_sexpr e ^ "\n") "sinttensor" builder
-    | SFloatTensor(_) -> L.build_global_stringptr (string_of_sexpr e ^ "\n") "sfloattensor" builder
-    | SVarTensor(_) -> L.build_global_stringptr (string_of_sexpr e ^ "\n") "svartensor" builder
-    | SLRTensor(_) -> L.build_global_stringptr (string_of_sexpr e ^ "\n") "slrtensor" builder
-    | SNPTensor(_) -> L.build_global_stringptr (string_of_sexpr e ^ "\n") "snptensor" builder
-    | SLRTensors(_, _) -> L.build_global_stringptr (string_of_sexpr e ^ "\n") "slrtensors" builder
-    | SNPTensors(_, _) -> L.build_global_stringptr (string_of_sexpr e ^ "\n") "snptensors" builder
-    | STensor0(_) -> L.build_global_stringptr (string_of_sexpr e ^ "\n") "tensor0" builder
-    | SPrint(se1) -> L.build_call printi_func [| expr builder se1 |] "" builder in
+  (* expression translation *)
+  let rec genExpr builder se = match se with
+      (_, SBinop(se1, op, se2)) -> 
+        let se1_ = genExpr builder se1
+        and se2_ = genExpr builder se2 in
+        (match op with
+          Add -> L.build_call add_func
+        | Mul -> L.build_call mult_func
+        ) [| se1_ ; se2_ |] "tmpOp" builder
+    | (STensorTup(t, n, d), STensor(y)) ->
+        (match t with 
+          INT_Tensor -> set_constptr "stensor" (L.const_named_struct tensor_t 
+            (let dims = set_constptr "sdim" (gen_dim i8_t d) the_module i8ptr_t
+            and data = set_constptr "sdata" (gen_array int_t y) the_module i8ptr_t
+            in [|gen_value i8_t 0; gen_value i8_t n; dims; data|])) the_module i8ptr_t
+        | FLOAT_Tensor -> set_constptr "stensor" (L.const_named_struct tensor_t 
+            (let dims = set_constptr "sdim" (gen_dim i8_t d) the_module i8ptr_t
+            and data = set_constptr "sdata" (gen_array float_t y) the_module i8ptr_t
+            in [|gen_value i8_t 1; gen_value i8_t n; dims; data|])) the_module i8ptr_t
+        ) 
+    | (_, _) -> gen_value i8ptr_t 0 in
+
   
   let rec stmt builder = function
-      SExpr se -> ignore(expr builder se); builder in
+      SExpr se -> ignore(genExpr builder se); builder in
 
   let builder = L.builder_at_end context (L.entry_block the_function) in
   let builder = List.fold_left stmt builder sstmts in

@@ -12,9 +12,8 @@ module StringMap = Map.Make(String)
 let symbol_table = StringMap.empty
 
 let check stmts = 
-  let rec expr = function
-    Lit(l) -> SLit(l)
-  | Id(i) -> SId(i)
+  (* let rec expr = function
+    Id(i) -> SId(i)
   | IntTensor(e1) -> SIntTensor(expr e1)
   | FloatTensor(e1) -> SFloatTensor(expr e1)
   | VarTensor(e1) -> SVarTensor(expr e1)
@@ -55,13 +54,13 @@ let check stmts =
   | Eigv(e1) -> SEigv(expr e1)
   | FuncCall(e1, e2) -> SFuncCall(expr e1, List.map expr e2)
 
-  in
+  in *)
 
-  let rec stmt = function
+  (* let rec stmt = function
     Expr(e) -> SExpr(expr e)
   | Assign(e1, e2) -> SAssign(expr e1, expr e2)
 
-  in
+  in *)
 
-  (* ignore(List.map (stmt_check symbol_table) stmts); *)
-  List.map stmt stmts
+  List.map (check_stmt symbol_table) stmts
+  (* List.map stmt stmts *)
