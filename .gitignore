@@ -12,3 +12,10 @@ _build
 *.native
 *.out.s
 *.log
+libtorch
+build
+*.ll
+*.s
+test
+*.diff
+*.out

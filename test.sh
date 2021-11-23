@@ -88,11 +88,17 @@ Check() {
 
     generatedfiles=""
 
+    if [ -d build ]; then echo "build exist"; else mkdir build; fi 
+
     generatedfiles="$generatedfiles ${basename}.ll ${basename}.s ${basename}.exe ${basename}.out" &&
-    Run "$TENLAB" "$1" ">" "${basename}.ll" &&
-    Run "$LLC" "-relocation-model=pic" "${basename}.ll" ">" "${basename}.s" &&
-    Run "$CC" "-o" "${basename}.exe" "${basename}.s" "./lib/add.o" "./lib/print.o" "./lib/mult.o" &&
-    Run "./${basename}.exe" > "${basename}.out" &&
+    # Run "$TENLAB" "$1" ">" "${basename}.ll" &&
+    # Run "$LLC" "-relocation-model=pic" "${basename}.ll" ">" "${basename}.s" &&
+    # Run "$CC" "-o" "${basename}.exe" "${basename}.s" "./lib/add.o" "./lib/print.o" "./lib/mult.o" &&
+    Run "cd build" &&
+    Run "cmake .." "-DSOURCE_FILE:FILEPATH=${basename}.s" &&
+    Run "make" &&
+    Run "cd .." &&
+    Run "./test" > "${basename}.out" &&
     Compare ${basename}.out ${reffile}.out ${basename}.diff
 
     # Report the status and clean up the generated files

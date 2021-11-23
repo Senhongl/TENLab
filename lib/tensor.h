@@ -1,12 +1,22 @@
+#ifndef __TENSOR_H
+#define __TENSOR_H
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
+#include <errno.h>
 
-#define die(...) \
+#include <iostream>
+#include <torch/torch.h>
+
+#define check(cond, ...) \
 do {\
+    if (cond)\
+        break;\
     fprintf(stderr, __VA_ARGS__);\
-    perror(" ");\
+    if (errno)\
+        perror(" ");\
     exit(1);\
 } while(0)
 
@@ -18,7 +28,9 @@ typedef struct tensor
     void *data;
 } tensor;
 
-void *add(void *, void *);
-void *mult(void *, void *);
+torch::Dtype toType(const tensor * const a);
+int8_t fromType(const torch::Dtype &a_type);
+torch::Tensor toTensor(const tensor * const a);
+tensor *fromTensor(const torch::Tensor &a_t);
 
-void print(void *);
+#endif /* __TENSOR_H */
