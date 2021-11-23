@@ -19,6 +19,7 @@ TENLab is an imperative language that supports distributed matrix calculation an
 - Built-in
   - Support Unop
   - Any other built-in function
+- Tensor slicing and accessing
 - Support UDF
 - Distributed computation
 
