@@ -8,6 +8,8 @@ TENLab is an imperative language that supports distributed matrix calculation an
   - Expression Check
   - Statement Check
   - Support local symbol table
+- Syntax check:
+  - add some syntax check: e.g., return can only appear within a function
 - Tensors:
   - Support String & Var tensor
 - Built-in
