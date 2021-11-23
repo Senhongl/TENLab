@@ -7,7 +7,8 @@ type sdimtype = STensorTup of tensortype * int * int array | SVoidTup
 
 type sexpr = sdimtype * sx
 and sx =
-  SId of string
+  SVoidExpr (* for semantic check only *)
+| SId of string
 | SFId of string
 | STensor of literal array
 | SBinop of sexpr * bop * sexpr
@@ -41,6 +42,7 @@ type sstmt =
   SExpr of sexpr
 | SAssign of string * sexpr
 | SFuncSign of string * string list
+| SFuncDecl of sstmt * sstmt list
 (* Keyword statement *)
 | SReturn of expr
 | SBreak

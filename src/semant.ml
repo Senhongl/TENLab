@@ -80,7 +80,12 @@ let check_stmt symbol_table function_table = function
 | Assign(str1, e2) -> let sexpr = check_expr symbol_table function_table e2 in
                       ignore(StringHash.add symbol_table str1 sexpr); SAssign(str1, sexpr)
 | FuncSign(str1, str2) -> let argc = List.length(str2) in
+                          List.iter (function s -> StringHash.add symbol_table s (SVoidTup, SVoidExpr));
                           StringHash.add function_table str1 argc; SFuncSign(str1, str2)
+| FuncDecl(s1, s2) -> let s1_ = check_stmt symbol_table function_table s1 in
+                      let local_symbol_table = StringHash.copy symbol_table in
+                      let s2_ = List.map(check_stmt local_symbol_table function_table) s2 in
+                      SFuncDecl(s1_, s2_)
 
 let check stmts = 
   List.map (check_stmt symbol_table function_table) stmts
