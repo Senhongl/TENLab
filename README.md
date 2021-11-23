@@ -24,6 +24,12 @@ TENLab is an imperative language that supports distributed matrix calculation an
 - Distributed computation
 
 ## Instruction
+* Necessary package installation
+```
+wget https://download.pytorch.org/libtorch/nightly/cpu/libtorch-shared-with-deps-latest.zip
+unzip libtorch-shared-with-deps-latest.zip
+rm -rf libtorch-shared-with-deps-latest.zip
+```
 
 * To run the code with providing Dockerfile, one can first build the image by
 
