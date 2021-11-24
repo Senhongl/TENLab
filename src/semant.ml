@@ -59,9 +59,11 @@ let rec check_tensor = function
 
 (* expr -> sexpr *)
 let rec check_expr symbol_table function_table = function
-  Id(id) -> if StringHash.mem symbol_table id then StringHash.find symbol_table id
+  Id(id) -> if StringHash.mem function_table id then StringHash.remove function_table id;
+            if StringHash.mem symbol_table id then StringHash.find symbol_table id
             else raise (E "not defined")
-| FId(id) -> if StringHash.mem function_table id then (SVoidTup, SFId(id)) else raise (E "function not defined")
+| FId(id) -> if StringHash.mem symbol_table id then StringHash.remove symbol_table id;
+             if StringHash.mem function_table id then (SVoidTup, SFId(id)) else raise (E "function not defined")
 | Binop(x1, bop, x2) -> (SVoidTup, SBinop(check_expr symbol_table function_table x1, bop, check_expr symbol_table function_table x2))
 | Tensor(x) -> (match check_tensor(x) with 
   | (TensorTup(t, n, d::d_), y) -> (STensorTup(t, n, Array.of_list d_), STensor(y))
@@ -75,7 +77,7 @@ let rec check_expr symbol_table function_table = function
                       else (SVoidTup, SFuncCall(e1_, e2_))
 
 (* stmt -> sstmt *)
-let check_stmt symbol_table function_table = function
+let rec check_stmt symbol_table function_table = function
   Expr(e) -> SExpr(check_expr symbol_table function_table e)
 | Assign(str1, e2) -> let sexpr = check_expr symbol_table function_table e2 in
                       ignore(StringHash.add symbol_table str1 sexpr); SAssign(str1, sexpr)
@@ -86,6 +88,12 @@ let check_stmt symbol_table function_table = function
                       let local_symbol_table = StringHash.copy symbol_table in
                       let s2_ = List.map(check_stmt local_symbol_table function_table) s2 in
                       SFuncDecl(s1_, s2_)
+| Return(e1) -> let e1_ = check_expr symbol_table function_table e1 in
+                SReturn(e1_)
+| Break -> SBreak
+| Continue -> SContinue
+| Exit(e1) -> let e1_ = check_expr symbol_table function_table e1 in
+              SExit(e1_)
 
 let check stmts = 
   List.map (check_stmt symbol_table function_table) stmts

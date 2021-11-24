@@ -27,6 +27,9 @@ TENLab is an imperative language that supports distributed matrix calculation an
 * To run the code with providing Dockerfile, one can first build the image by
 
 ```
+# if using ARM-based system
+docker buildx build --platform linux/amd64 -t tenlab - < Dockerfile
+# otherwise, just
 docker build -t tenlab - < Dockerfile
 ```
 

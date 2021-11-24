@@ -44,10 +44,10 @@ type sstmt =
 | SFuncSign of string * string list
 | SFuncDecl of sstmt * sstmt list
 (* Keyword statement *)
-| SReturn of expr
+| SReturn of sexpr
 | SBreak
 | SContinue
-| SExit of expr
+| SExit of sexpr
 
 (* let rec string_of_sexpr = function
   SId(str1) -> str1
