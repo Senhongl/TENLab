@@ -24,6 +24,8 @@ module StringHash = Hashtbl.Make(struct
   let hash = Hashtbl.hash
 end)
 
+exception E of string (* debug information *)
+
 let gen_array ltype arr =
     let n = Array.length arr in
     let newarray = Array.make n 
@@ -81,7 +83,9 @@ let translate sstmts =
     let alloca = L.build_alloca i8ptr_t args_name local_builder in
         (* let args_val = L.const_bitcast args_val tensor_pt in *)
         ignore(L.build_store args_val alloca local_builder);
-        StringHash.add symbol_table args_name alloca in
+        let ptr = L.build_load alloca "local" local_builder in
+        let ptr = L.const_bitcast ptr i8ptr_t in
+        StringHash.add symbol_table args_name ptr in
 
   (* add terminal for function definition *)
   let add_terminal builder instr = 
@@ -103,12 +107,16 @@ let translate sstmts =
   let print_func : L.llvalue = 
   L.declare_function "print" print_t the_module in
 
+  let lookup id symbol_table = try StringHash.find symbol_table id
+                               with Not_found -> raise (E "bug!!!!!!!") in
+
   (* expression translation *)
-  let rec genExpr builder se = match se with
+  let rec genExpr symbol_table builder se = match se with
       (* (_, SFId(id)) -> what's llvalue of sfid?  *)
+    | (_, SId(id)) -> lookup id symbol_table
     | (_, SBinop(se1, op, se2)) -> 
-        let se1_ = genExpr builder se1
-        and se2_ = genExpr builder se2 in
+        let se1_ = genExpr symbol_table builder se1
+        and se2_ = genExpr symbol_table builder se2 in
         (match op with
           Add -> L.build_call add_func
         | Mul -> L.build_call mult_func
@@ -124,7 +132,7 @@ let translate sstmts =
             and data = set_constptr "sdata" (gen_array float_t y) the_module i8ptr_t
             in [|gen_value i8_t 1; gen_value i8_t n; dims; data|])) the_module i8ptr_t
         ) 
-    | (_, SPrint(se1)) -> let se1_ = genExpr builder se1 in
+    | (_, SPrint(se1)) -> let se1_ = genExpr symbol_table builder se1 in
                           L.build_call print_func [| se1_ |] "" builder
     | (_, SFuncCall(str1, se1)) -> let (the_function, the_builder) = StringHash.find function_table str1 in
                                    (* let se_to_args se = 
@@ -132,7 +140,7 @@ let translate sstmts =
                                     let tensor = genExpr builder se in
                                     L.build_store tensor alloca builder in
                                    let argv = List.map se_to_args se1 in *)
-                                   let argv = List.map (genExpr the_builder) se1 in
+                                   let argv = List.map (genExpr symbol_table the_builder) se1 in
                                    L.build_call the_function (Array.of_list argv) "ret" builder
     | (_, _) -> gen_value i8ptr_t 0 in
 
@@ -145,8 +153,8 @@ let translate sstmts =
   in
 
   let rec stmt symbol_table builder = function
-      SExpr(se) -> ignore(genExpr builder se); builder 
-    | SAssign(str1, se1) -> let llvalue = genExpr builder se1 in
+      SExpr(se) -> ignore(genExpr symbol_table builder se); builder 
+    | SAssign(str1, se1) -> let llvalue = genExpr symbol_table builder se1 in
                             ignore(StringHash.add symbol_table str1 llvalue); builder
     | SFuncDecl(str1, str2, ss1) -> let argc = List.length(str2) in
                              let (the_function, the_builder) = build_fn str1 argc in
@@ -158,7 +166,7 @@ let translate sstmts =
                              let the_builder = List.fold_left (stmt local_symbol_table) the_builder ss1 in
                              ignore(add_terminal the_builder build_return); 
                              builder (* return the main builder *)
-    | SReturn(se1) -> ignore(L.build_ret (genExpr builder se1) builder); builder
+    | SReturn(se1) -> ignore(L.build_ret (genExpr symbol_table builder se1) builder); builder
   in
 
   let builder = L.builder_at_end context (L.entry_block the_function) in

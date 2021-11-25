@@ -60,7 +60,7 @@ let rec check_tensor = function
 (* expr -> sexpr *)
 let rec check_expr symbol_table function_table = function
   Id(id) -> if StringHash.mem function_table id then StringHash.remove function_table id;
-            if StringHash.mem symbol_table id then StringHash.find symbol_table id
+            if StringHash.mem symbol_table id then (SVoidTup, SId(id))
             else raise (E "not defined")
 | FId(id) -> if StringHash.mem symbol_table id then StringHash.remove symbol_table id;
              if StringHash.mem function_table id then (SVoidTup, SFId(id)) else raise (E "function not defined")

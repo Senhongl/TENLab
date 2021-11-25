@@ -1,6 +1,6 @@
 def foo(a, b) {
-    c = 2;
-    d = 3;
+    c = a;
+    d = b;
     e = c + d;
     return e;
 }
