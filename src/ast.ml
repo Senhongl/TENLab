@@ -74,8 +74,8 @@ type stmt =
   EmptyStmt
 | Expr of expr
 | Assign of string * expr
-| FuncSign of string * string list
-| FuncDecl of stmt * stmt list
+(* | FuncSign of string * string list *)
+| FuncDecl of string * string list * stmt list
 | IfStmt of expr * stmt list * stmt list
 | ForStmt of expr * expr * stmt list
 | WhileStmt of expr * stmt list
@@ -166,10 +166,10 @@ let rec string_of_expr = function
 
 let rec string_of_stmt = function
   EmptyStmt -> ""
-| Expr(e1) -> string_of_expr e1 ^ ";\n"
+| Expr(e1) -> string_of_expr e1
 | Assign(str1, e2) -> (str1 ^ " = " ^ string_of_expr e2)
-| FuncSign(str1, str2) -> str1 ^ "(" ^ (String.concat "," str2) ^ ")" ^ "\n"
-| FuncDecl(s1, s2) -> "def " ^ string_of_stmt s1 ^ "{\n" ^ String.concat "," (List.map string_of_stmt s2) ^ "}\n"
+(* | FuncSign(str1, str2) -> str1 ^ "(" ^ (String.concat "," str2) ^ ")" ^ "\n" *)
+| FuncDecl(str1, str2, s1) -> "def " ^ str1 ^ "(" ^ String.concat "," str2 ^ ")" ^ "{\n" ^ String.concat ";\n" (List.map string_of_stmt s1) ^ "}\n"
 | IfStmt(e1, s2, s3) -> (match s3 with
     | [EmptyStmt] -> "if (" ^ string_of_expr e1 ^ ")\n{\n" ^ String.concat "," (List.map string_of_stmt s2) ^ "}\n"
     | _ -> "if (" ^ string_of_expr e1 ^ ")\n{\n" ^ String.concat "," (List.map string_of_stmt s2) ^ "} else {" ^ String.concat "," (List.map string_of_stmt s3) ^ "\n}\n")
@@ -188,4 +188,4 @@ let rec string_of_stmt = function
 | Continue -> "continue\n"
 | Exit(e1) -> "exit" ^ string_of_expr e1 ^ "\n"
 
-and string_of_program l = String.concat "" (List.map string_of_stmt l) ^ "\n"
+and string_of_program l = String.concat ";\n" (List.map string_of_stmt l) ^ "\n"

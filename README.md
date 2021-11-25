@@ -21,6 +21,11 @@ TENLab is an imperative language that supports distributed matrix calculation an
   - Any other built-in function
 - Tensor slicing and accessing
 - Support UDF
+  - check udf in udf 
+  - check if the function have return value!
+  - when translating the argv, use main builder or local builder?
+  - currently, seems like the argv are passing with reference
+  - a bug is about the return value.
 - Distributed computation
 
 ## Instruction

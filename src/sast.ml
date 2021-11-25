@@ -36,13 +36,13 @@ and sx =
 | SSvd of sexpr
 | SEig of sexpr
 | SEigv of sexpr
-| SFuncCall of sexpr * sexpr list
+| SFuncCall of string * sexpr list
 
 type sstmt =
   SExpr of sexpr
 | SAssign of string * sexpr
-| SFuncSign of string * string list
-| SFuncDecl of sstmt * sstmt list
+(* | SFuncSign of string * string list *)
+| SFuncDecl of string * string list * sstmt list
 (* Keyword statement *)
 | SReturn of sexpr
 | SBreak

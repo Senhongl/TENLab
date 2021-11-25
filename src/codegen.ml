@@ -47,20 +47,20 @@ done; L.const_array ltype newarray
 let gen_value ltype value = L.const_int ltype value
 
 let set_constptr name lvalue lmodule ltype = 
-let global_value = L.define_global name lvalue lmodule in
-    L.set_global_constant true global_value; 
-    L.set_linkage L.Linkage.Private global_value;
-    L.set_unnamed_addr true global_value;
-    L.const_bitcast global_value ltype
+  let global_value = L.define_global name lvalue lmodule in
+      L.set_global_constant true global_value; 
+      L.set_linkage L.Linkage.Private global_value;
+      L.set_unnamed_addr true global_value;
+      L.const_bitcast global_value ltype
     
 let translate sstmts =
   let global_symbol_table = StringHash.create 10 in
+  let function_table = StringHash.create 10 in
 
   let context = L.global_context() in
 
   let the_module = L.create_module context "TENLab" in
 
-  (* TODO: How to support tensor? Seems like it can be supported directly. *)
   let int_t     = L.i32_type      context
   and i8_t      = L.i8_type       context
   and float_t   = L.double_type   context
@@ -69,9 +69,25 @@ let translate sstmts =
   and tensor_t = L.named_struct_type context "tensor_t" in
         L.struct_set_body tensor_t [| i8_t; i8_t; i8ptr_t; i8ptr_t |] false;
 
+  let tensor_pt = L.pointer_type  tensor_t in
+
   (* init *)
   let function_type = L.function_type i8_t [||] in
   let the_function = L.define_function "main" function_type the_module in
+
+  (* set local pointer *)
+  let set_localptr local_builder symbol_table args_name args_val =
+    L.set_value_name args_name args_val;
+    let alloca = L.build_alloca i8ptr_t args_name local_builder in
+        (* let args_val = L.const_bitcast args_val tensor_pt in *)
+        ignore(L.build_store args_val alloca local_builder);
+        StringHash.add symbol_table args_name alloca in
+
+  (* add terminal for function definition *)
+  let add_terminal builder instr = 
+      match L.block_terminator (L.insertion_block builder) with  
+	    Some _ -> ()   (* do nothing if terminator is there *)
+      | None -> ignore (instr builder) in
 
   (* built-in function *)
   let add_t : L.lltype = 
@@ -89,7 +105,8 @@ let translate sstmts =
 
   (* expression translation *)
   let rec genExpr builder se = match se with
-      (_, SBinop(se1, op, se2)) -> 
+      (* (_, SFId(id)) -> what's llvalue of sfid?  *)
+    | (_, SBinop(se1, op, se2)) -> 
         let se1_ = genExpr builder se1
         and se2_ = genExpr builder se2 in
         (match op with
@@ -109,13 +126,39 @@ let translate sstmts =
         ) 
     | (_, SPrint(se1)) -> let se1_ = genExpr builder se1 in
                           L.build_call print_func [| se1_ |] "" builder
+    | (_, SFuncCall(str1, se1)) -> let (the_function, the_builder) = StringHash.find function_table str1 in
+                                   (* let se_to_args se = 
+                                    let alloca = L.build_alloca i8ptr_t "arg" builder in
+                                    let tensor = genExpr builder se in
+                                    L.build_store tensor alloca builder in
+                                   let argv = List.map se_to_args se1 in *)
+                                   let argv = List.map (genExpr the_builder) se1 in
+                                   L.build_call the_function (Array.of_list argv) "ret" builder
     | (_, _) -> gen_value i8ptr_t 0 in
 
-  
+  let build_fn fname argc =
+    let ftype : L.lltype = 
+      L.function_type i8ptr_t (Array.make argc i8ptr_t) in
+    let the_function = L.define_function fname ftype the_module in
+    let builder = L.builder_at_end context (L.entry_block the_function) in
+    (the_function, builder)
+  in
+
   let rec stmt symbol_table builder = function
       SExpr(se) -> ignore(genExpr builder se); builder 
     | SAssign(str1, se1) -> let llvalue = genExpr builder se1 in
                             ignore(StringHash.add symbol_table str1 llvalue); builder
+    | SFuncDecl(str1, str2, ss1) -> let argc = List.length(str2) in
+                             let (the_function, the_builder) = build_fn str1 argc in
+                             ignore(StringHash.add function_table str1 (the_function, the_builder));
+                             let local_symbol_table = StringHash.copy symbol_table in
+                             let argv = Array.to_list (L.params the_function) in
+                             List.iter2 (set_localptr the_builder local_symbol_table) str2 argv;
+                             let build_return b = L.build_ret (L.const_int i8_t 0) b in (* TODO: return 0 if no return statement, it's a bug!!!!!!! *)
+                             let the_builder = List.fold_left (stmt local_symbol_table) the_builder ss1 in
+                             ignore(add_terminal the_builder build_return); 
+                             builder (* return the main builder *)
+    | SReturn(se1) -> ignore(L.build_ret (genExpr builder se1) builder); builder
   in
 
   let builder = L.builder_at_end context (L.entry_block the_function) in

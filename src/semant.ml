@@ -74,20 +74,21 @@ let rec check_expr symbol_table function_table = function
                       let FId(id) = e1 in
                       let argc = StringHash.find function_table id in
                       if argc <> List.length(e2) then raise (E "the number of arguments mismatch")
-                      else (SVoidTup, SFuncCall(e1_, e2_))
+                      else (SVoidTup, SFuncCall(id, e2_))
 
 (* stmt -> sstmt *)
 let rec check_stmt symbol_table function_table = function
   Expr(e) -> SExpr(check_expr symbol_table function_table e)
 | Assign(str1, e2) -> let sexpr = check_expr symbol_table function_table e2 in
                       ignore(StringHash.add symbol_table str1 sexpr); SAssign(str1, sexpr)
-| FuncSign(str1, str2) -> let argc = List.length(str2) in
+(* | FuncSign(str1, str2) -> let argc = List.length(str2) in
                           List.iter (function s -> StringHash.add symbol_table s (SVoidTup, SVoidExpr));
-                          StringHash.add function_table str1 argc; SFuncSign(str1, str2)
-| FuncDecl(s1, s2) -> let s1_ = check_stmt symbol_table function_table s1 in
-                      let local_symbol_table = StringHash.copy symbol_table in
-                      let s2_ = List.map(check_stmt local_symbol_table function_table) s2 in
-                      SFuncDecl(s1_, s2_)
+                          StringHash.add function_table str1 argc; SFuncSign(str1, str2) *)
+| FuncDecl(str1, str2, s1) -> let local_symbol_table = StringHash.copy symbol_table in
+                              let argc = List.length(str2) in
+                              List.iter (fun s -> StringHash.add local_symbol_table s (SVoidTup, SVoidExpr)) str2;
+                              let s1_ = List.map(check_stmt local_symbol_table function_table) s1 in
+                              ignore(StringHash.add function_table str1 argc); SFuncDecl(str1, str2, s1_)
 | Return(e1) -> let e1_ = check_expr symbol_table function_table e1 in
                 SReturn(e1_)
 | Break -> SBreak

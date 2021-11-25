@@ -83,16 +83,16 @@ stmt:
 | IDENTIFIER ASSIGNMENT expr SEP { Assign($1, $3) }
 | PARALLEL_DEFINE IDENTIFIER pe_body { PEDecl(Id($2), $3) }
 | USING IDENTIFIER { PEInvoke(Id($2)) }
-| DEFINE func_signature stmt_body { FuncDecl($2, $3) }
+| DEFINE IDENTIFIER LEFT_PARENTHESIS params RIGHT_PARENTHESIS stmt_body { FuncDecl($2, $4, $6) }
 | IF LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt_body %prec NOELSE { IfStmt($3, $5, [EmptyStmt]) }
 | IF LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt_body ELSE stmt_body { IfStmt($3, $5, $7) }
 | FOR LEFT_PARENTHESIS IDENTIFIER IN expr RIGHT_PARENTHESIS stmt_body { ForStmt(Id($3), $5, $7) }
 | WHILE LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt_body { WhileStmt($3, $5) }
 // keyword statements
-| RETURN expr { Return($2) }
-| BREAK { Break }
-| CONTINUE { Continue }
-| EXIT LEFT_PARENTHESIS expr RIGHT_PARENTHESIS { Exit($3) }
+| RETURN expr SEP { Return($2) }
+| BREAK SEP { Break }
+| CONTINUE SEP { Continue }
+| EXIT LEFT_PARENTHESIS expr RIGHT_PARENTHESIS SEP { Exit($3) }
 
 stmt_body: LEFT_CURLY_BRACKET stmts RIGHT_CURLY_BRACKET { $2 }
 
@@ -100,7 +100,7 @@ stmt_body: LEFT_CURLY_BRACKET stmts RIGHT_CURLY_BRACKET { $2 }
                         Function Call
  ***************************************************************************************/
 
-func_signature: IDENTIFIER LEFT_PARENTHESIS params RIGHT_PARENTHESIS { FuncSign($1, $3) }
+/* func_signature: IDENTIFIER LEFT_PARENTHESIS params RIGHT_PARENTHESIS { FuncSign($1, $3) } */
 
 /* We support the following form of function call:
  *      (i)  call the function directly
