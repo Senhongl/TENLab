@@ -162,7 +162,7 @@ let translate sstmts =
                              let local_symbol_table = StringHash.copy symbol_table in
                              let argv = Array.to_list (L.params the_function) in
                              List.iter2 (set_localptr the_builder local_symbol_table) str2 argv;
-                             let build_return b = L.build_ret (L.const_int i8_t 0) b in (* TODO: return 0 if no return statement, it's a bug!!!!!!! *)
+                             let build_return b = L.build_ret (L.const_pointer_null i8ptr_t) b in
                              let the_builder = List.fold_left (stmt local_symbol_table) the_builder ss1 in
                              ignore(add_terminal the_builder build_return); 
                              builder (* return the main builder *)
