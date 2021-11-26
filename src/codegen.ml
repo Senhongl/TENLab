@@ -107,8 +107,9 @@ let translate sstmts =
   let print_func : L.llvalue = 
   L.declare_function "print" print_t the_module in
 
-  let lookup id symbol_table = try StringHash.find symbol_table id
-                               with Not_found -> raise (E "bug!!!!!!!") in
+  let lookup id symbol_table = if StringHash.mem symbol_table id then StringHash.find symbol_table id
+                               else if StringHash.mem global_symbol_table id then StringHash.find global_symbol_table id
+                               else raise (E "bug!!!!!!!") in
 
   (* expression translation *)
   let rec genExpr symbol_table builder se = match se with
