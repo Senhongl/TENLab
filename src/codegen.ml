@@ -148,8 +148,7 @@ let translate sstmts =
     | (_, SPrint(se1)) -> let se1_ = genExpr the_namespace se1 in
                           L.build_call print_func [| se1_ |] "" the_namespace.builder
     | (_, SFuncCall(str1, se1)) -> let (the_function, the_builder) = StringHash.find the_namespace.function_table str1 in
-                                   let new_namespace = {symbol_table = the_namespace.symbol_table; function_table = the_namespace.function_table; func = the_function; builder = the_builder} in
-                                   let argv = List.map (genExpr new_namespace) se1 in
+                                   let argv = List.map (genExpr the_namespace) se1 in
                                    L.build_call the_function (Array.of_list argv) "ret" the_namespace.builder
     | (_, _) -> gen_value i8ptr_t 0 in
 
@@ -182,7 +181,7 @@ let translate sstmts =
                                 let local_function_table = StringHash.copy the_namespace.function_table in
                                 let se1_ = genExpr the_namespace se1 in
                                 let bool_val = L.build_call bool_of_zero [| se1_ |] "bool" the_namespace.builder in
-                                let merge_bb = L.append_block context "merge" the_namespace.func in (* main function *)
+                                let merge_bb = L.append_block context "merge" the_namespace.func in
                                 let build_br_merge = L.build_br merge_bb in
                                 let then_bb = L.append_block context "then" the_namespace.func in
                                 let local_builder = L.builder_at_end context then_bb in
@@ -195,13 +194,13 @@ let translate sstmts =
                                 let local_namespace = List.fold_left stmt local_namespace ss2 in
                                 ignore(add_terminal local_namespace.builder build_br_merge);
                                 ignore(L.build_cond_br bool_val then_bb else_bb the_namespace.builder);
-                                ignore(L.builder_at_end context merge_bb);
-                                the_namespace
+                                let builder = L.builder_at_end context merge_bb in
+                                {symbol_table = the_namespace.symbol_table; function_table = the_namespace.function_table; func = the_namespace.func; builder = builder}
     | SReturn(se1) -> ignore(L.build_ret (genExpr the_namespace se1) the_namespace.builder); the_namespace
   in
 
   let main_builder = L.builder_at_end context (L.entry_block main_function) in
   let main_namespace = {symbol_table = global_symbol_table; function_table = global_function_table; func = main_function; builder = main_builder} in
   let main_namespace = List.fold_left stmt main_namespace sstmts in
-  ignore(L.build_ret (L.const_int i8_t 0) main_builder);
+  ignore(L.build_ret (L.const_int i8_t 0) main_namespace.builder);
   the_module;
