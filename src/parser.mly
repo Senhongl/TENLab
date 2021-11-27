@@ -209,6 +209,7 @@ expr:
 tensor:
     LEFT_SQUARE_BRACKET tensor COMMA n_tensor RIGHT_SQUARE_BRACKET { LRTensors($2, $4) }
   | LEFT_SQUARE_BRACKET tensor RIGHT_SQUARE_BRACKET { LRTensor($2) }
+  | LEFT_SQUARE_BRACKET RIGHT_SQUARE_BRACKET { LRTensor(EmptyTensor) }
   | INT_LITERAL { Tensor0(IntLit($1)) }
   | FLOAT_LITERAL { Tensor0(FloatLit($1)) }
 

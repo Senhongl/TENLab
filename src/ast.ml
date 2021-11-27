@@ -63,7 +63,8 @@ type expr =
 
 (* Tensor *)
 and tensor = 
-  LRTensor of tensor
+  EmptyTensor
+| LRTensor of tensor
 | NPTensor of tensor
 | LRTensors of tensor * tensor
 | NPTensors of tensor * tensor
@@ -125,7 +126,8 @@ let string_of_lit = function
 | StringLit(l) -> "\"" ^ l ^ "\""
 
 let rec string_of_tensor = function
-  Tensor0(l) -> string_of_lit l
+  EmptyTensor -> ""
+| Tensor0(l) -> string_of_lit l
 | LRTensor(t1) -> "[" ^ string_of_tensor t1 ^ "]"
 | NPTensor(t1) -> string_of_tensor t1
 | LRTensors(t1, t2) -> "[" ^ string_of_tensor t1 ^ ", " ^ string_of_tensor t2 ^ "]"

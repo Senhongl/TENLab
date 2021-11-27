@@ -39,10 +39,12 @@ and sx =
 | SFuncCall of string * sexpr list
 
 type sstmt =
-  SExpr of sexpr
+  SEmptyStmt
+| SExpr of sexpr
 | SAssign of string * sexpr
 (* | SFuncSign of string * string list *)
 | SFuncDecl of string * string list * sstmt list
+| SIfStmt of sexpr * sstmt list * sstmt list
 (* Keyword statement *)
 | SReturn of sexpr
 | SBreak

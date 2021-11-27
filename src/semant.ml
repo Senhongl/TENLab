@@ -78,17 +78,21 @@ let rec check_expr symbol_table function_table = function
 
 (* stmt -> sstmt *)
 let rec check_stmt symbol_table function_table = function
-  Expr(e) -> SExpr(check_expr symbol_table function_table e)
+  EmptyStmt -> SEmptyStmt
+| Expr(e) -> SExpr(check_expr symbol_table function_table e)
 | Assign(str1, e2) -> let sexpr = check_expr symbol_table function_table e2 in
                       ignore(StringHash.add symbol_table str1 sexpr); SAssign(str1, sexpr)
-(* | FuncSign(str1, str2) -> let argc = List.length(str2) in
-                          List.iter (function s -> StringHash.add symbol_table s (SVoidTup, SVoidExpr));
-                          StringHash.add function_table str1 argc; SFuncSign(str1, str2) *)
+| IfStmt(e1, s1, s2) -> let local_symbol_table = StringHash.copy symbol_table in
+                        let e1_ = check_expr local_symbol_table function_table e1 in (* TODO: check if boolean expression *)
+                        let s1_ = List.map (check_stmt local_symbol_table function_table) s1 in
+                        let s2_ = List.map (check_stmt local_symbol_table function_table) s2 in
+                        SIfStmt(e1_, s1_, s2_)
 | FuncDecl(str1, str2, s1) -> let local_symbol_table = StringHash.copy symbol_table in
                               let argc = List.length(str2) in
                               List.iter (fun s -> StringHash.add local_symbol_table s (SVoidTup, SVoidExpr)) str2;
+                              ignore(StringHash.add function_table str1 argc);
                               let s1_ = List.map(check_stmt local_symbol_table function_table) s1 in
-                              ignore(StringHash.add function_table str1 argc); SFuncDecl(str1, str2, s1_)
+                              SFuncDecl(str1, str2, s1_)
 | Return(e1) -> let e1_ = check_expr symbol_table function_table e1 in
                 SReturn(e1_)
 | Break -> SBreak
