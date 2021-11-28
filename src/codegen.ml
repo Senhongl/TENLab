@@ -196,6 +196,22 @@ let translate sstmts =
                                 ignore(L.build_cond_br bool_val then_bb else_bb the_namespace.builder);
                                 let builder = L.builder_at_end context merge_bb in
                                 {symbol_table = the_namespace.symbol_table; function_table = the_namespace.function_table; func = the_namespace.func; builder = builder}
+    | SWhileStmt(se1, ss1) -> let local_symbol_table = StringHash.copy the_namespace.symbol_table in
+                              let local_function_table = StringHash.copy the_namespace.function_table in 
+                              let se1_ = genExpr the_namespace se1 in
+                              let bool_val = L.build_call bool_of_zero [| se1_ |] "bool" the_namespace.builder in
+                              let pred_bb = L.append_block context "while" the_namespace.func in
+                              ignore(L.build_br pred_bb the_namespace.builder);
+                              let body_bb = L.append_block context "while_body" the_namespace.func in
+                              let local_builder = L.builder_at_end context body_bb in
+                              let local_namespace = {symbol_table = local_symbol_table; function_table = local_function_table; func = the_namespace.func; builder = local_builder} in
+                              let local_namespace = List.fold_left stmt local_namespace ss1 in
+                              ignore(add_terminal local_namespace.builder (L.build_br pred_bb));
+                              let pred_builder = L.builder_at_end context pred_bb in
+                              let merge_bb = L.append_block context "merge" the_namespace.func in
+                              ignore(L.build_cond_br bool_val body_bb merge_bb pred_builder);
+                              let builder = L.builder_at_end context merge_bb in
+                              {symbol_table = the_namespace.symbol_table; function_table = the_namespace.function_table; func = the_namespace.func; builder = builder}
     | SReturn(se1) -> ignore(L.build_ret (genExpr the_namespace se1) the_namespace.builder); the_namespace
   in
 

@@ -45,6 +45,8 @@ type sstmt =
 (* | SFuncSign of string * string list *)
 | SFuncDecl of string * string list * sstmt list
 | SIfStmt of sexpr * sstmt list * sstmt list
+| SWhileStmt of sexpr * sstmt list
+| SForStmt of sexpr * sexpr * sstmt list
 (* Keyword statement *)
 | SReturn of sexpr
 | SBreak

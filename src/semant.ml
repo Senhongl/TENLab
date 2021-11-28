@@ -83,15 +83,22 @@ let rec check_stmt symbol_table function_table = function
 | Assign(str1, e2) -> let sexpr = check_expr symbol_table function_table e2 in
                       ignore(StringHash.add symbol_table str1 sexpr); SAssign(str1, sexpr)
 | IfStmt(e1, s1, s2) -> let local_symbol_table = StringHash.copy symbol_table in
-                        let e1_ = check_expr local_symbol_table function_table e1 in (* TODO: check if boolean expression *)
-                        let s1_ = List.map (check_stmt local_symbol_table function_table) s1 in
-                        let s2_ = List.map (check_stmt local_symbol_table function_table) s2 in
+                        let local_function_table = StringHash.copy function_table in
+                        let e1_ = check_expr local_symbol_table local_function_table e1 in (* TODO: check if boolean expression *)
+                        let s1_ = List.map (check_stmt local_symbol_table local_function_table) s1 in
+                        let s2_ = List.map (check_stmt local_symbol_table local_function_table) s2 in
                         SIfStmt(e1_, s1_, s2_)
+| WhileStmt(e1, s1) -> let local_symbol_table = StringHash.copy symbol_table in
+                       let local_function_table = StringHash.copy function_table in
+                       let e1_ = check_expr local_symbol_table local_function_table e1 in
+                       let s1_ = List.map (check_stmt local_symbol_table local_function_table) s1 in
+                       SWhileStmt(e1_, s1_)
 | FuncDecl(str1, str2, s1) -> let local_symbol_table = StringHash.copy symbol_table in
                               let argc = List.length(str2) in
                               List.iter (fun s -> StringHash.add local_symbol_table s (SVoidTup, SVoidExpr)) str2;
                               ignore(StringHash.add function_table str1 argc);
-                              let s1_ = List.map(check_stmt local_symbol_table function_table) s1 in
+                              let local_function_table = StringHash.copy function_table in
+                              let s1_ = List.map(check_stmt local_symbol_table local_function_table) s1 in
                               SFuncDecl(str1, str2, s1_)
 | Return(e1) -> let e1_ = check_expr symbol_table function_table e1 in
                 SReturn(e1_)
