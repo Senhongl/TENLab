@@ -6,7 +6,8 @@ type literal =
   IntLit of int
 | FloatLit of float
 
-type op = Add | Mul
+type bop = Add | Sub | Mul | DotMul | Div | FloorDiv | Pow | DotPow | Mod
+type uop = Transpose
 
 type tensor =
   LRTensor of tensor
@@ -16,5 +17,6 @@ type tensor =
 | Tensor0 of literal
 
 type expr =
-  Binop of expr * op * expr
+  Binop of expr * bop * expr
+| Unop of expr * uop
 | Tensor of tensor

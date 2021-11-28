@@ -1,11 +1,12 @@
 %{ open Tensorast %}
 
-%token L C R ADD MUL EOF
+%token L C R ADD SUB MUL DOTMUL DIV FLOORDIV POW DOTPOW MOD TRANSPOSE EOF
 %token <int> INT_LITERAL
 %token <float> FLOAT_LITERAL
 
-%left ADD
-%left MUL
+%left ADD, SUB, MOD
+%left MUL, DOTMUL, DIV, FLOORDIV, POW, DOTPOW
+%left TRANSPOSE
 
 %start expr
 %type <Tensorast.expr> expr
@@ -15,7 +16,15 @@
 %%
 expr:
     expr ADD expr { Binop($1, Add, $3) }
+  | expr SUB expr { Binop($1, Sub, $3) }
   | expr MUL expr { Binop($1, Mul, $3) }
+  | expr DOTMUL expr { Binop($1, DotMul, $3) }
+  | expr DIV expr { Binop($1, Div, $3) }
+  | expr FLOORDIV expr { Binop($1, FloorDiv, $3) }
+  | expr POW expr { Binop($1, Pow, $3) }
+  | expr DOTPOW expr { Binop($1, DotPow, $3) }
+  | expr MOD expr { Binop($1, Mod, $3) }
+  | expr TRANSPOSE { Unop($1, Transpose) }
   | tensor { Tensor($1) }
 ;
 tensor:

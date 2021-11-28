@@ -69,7 +69,8 @@ let rec check_tensor = function
 
 (* expr -> sexpr *)
 let rec check_expr = function
-  Binop(x1, op, x2) -> (SVoidTup, SBinop(check_expr(x1), op, check_expr(x2)))
+  Binop(x1, bop, x2) -> (SVoidTup, SBinop(check_expr(x1), bop, check_expr(x2)))
+| Unop(x, uop) -> (SVoidTup, SUnop(check_expr(x), uop))
 | Tensor(x) -> match check_tensor(x) with 
   | (TensorTup(t, n, d::d_), y) -> (STensorTup(t, n, Array.of_list d_), STensor(y))
   | (_, _) -> raise (E "ought not occur")

@@ -69,23 +69,67 @@ let translate sast =
       L.function_type i8ptr_t [| i8ptr_t; i8ptr_t |] in
     let add_func : L.llvalue = 
       L.declare_function "add" add_t the_module in
+    let subtract_t : L.lltype = 
+      L.function_type i8ptr_t [| i8ptr_t; i8ptr_t |] in
+    let subtract_func : L.llvalue = 
+      L.declare_function "subtract" subtract_t the_module in
     let mult_t : L.lltype = 
       L.function_type i8ptr_t [| i8ptr_t; i8ptr_t |] in
     let mult_func : L.llvalue = 
       L.declare_function "mult" mult_t the_module in
+    let dotmul_t : L.lltype = 
+      L.function_type i8ptr_t [| i8ptr_t; i8ptr_t |] in
+    let dotmul_func : L.llvalue = 
+      L.declare_function "dotmul" dotmul_t the_module in
+    let divide_t : L.lltype = 
+      L.function_type i8ptr_t [| i8ptr_t; i8ptr_t |] in
+    let divide_func : L.llvalue = 
+      L.declare_function "divide" divide_t the_module in
+    let floordivide_t : L.lltype = 
+      L.function_type i8ptr_t [| i8ptr_t; i8ptr_t |] in
+    let floordivide_func : L.llvalue = 
+      L.declare_function "floordivide" floordivide_t the_module in
+    let matpow_t : L.lltype = 
+      L.function_type i8ptr_t [| i8ptr_t; i8ptr_t |] in
+    let matpow_func : L.llvalue = 
+      L.declare_function "matpow" matpow_t the_module in
+    let dotpow_t : L.lltype = 
+      L.function_type i8ptr_t [| i8ptr_t; i8ptr_t |] in
+    let dotpow_func : L.llvalue = 
+      L.declare_function "dotpow" dotpow_t the_module in
+    let mod_t : L.lltype = 
+      L.function_type i8ptr_t [| i8ptr_t; i8ptr_t |] in
+    let mod_func : L.llvalue = 
+      L.declare_function "mod" mod_t the_module in
+    let transpose_t : L.lltype = 
+      L.function_type i8ptr_t [| i8ptr_t |] in
+    let transpose_func : L.llvalue = 
+      L.declare_function "transpose" transpose_t the_module in
     let print_t : L.lltype = 
       L.function_type void_t [| i8ptr_t |] in
     let print_func : L.llvalue = 
       L.declare_function "print" print_t the_module in
   
     let rec genExpr builder se = match se with
-      (_, SBinop(se1, op, se2)) -> 
+      (_, SBinop(se1, bop, se2)) -> 
         let se1_ = genExpr builder se1
         and se2_ = genExpr builder se2 in
-        (match op with
+        (match bop with
           Add -> L.build_call add_func
+        | Sub -> L.build_call subtract_func
         | Mul -> L.build_call mult_func
+        | DotMul -> L.build_call dotmul_func
+        | Div -> L.build_call divide_func
+        | FloorDiv -> L.build_call floordivide_func
+        | Pow -> L.build_call matpow_func
+        | DotPow -> L.build_call dotpow_func
+        | Mod -> L.build_call mod_func
         ) [| se1_ ; se2_ |] "tmpOp" builder
+    | (_, SUnop(se1, uop)) -> 
+        let se1_ = genExpr builder se1 in
+        (match uop with
+          Transpose -> L.build_call transpose_func
+        ) [| se1_ |] "tmpOp" builder
     | (STensorTup(t, n, d), STensor(y)) ->
         (match t with 
           INT_Tensor -> set_constptr "stensor" (L.const_named_struct tensor_t 
