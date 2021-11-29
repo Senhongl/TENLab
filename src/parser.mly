@@ -85,7 +85,7 @@ loop_stmts:
  * (viii) while statement
  * (ix)   TODO: more statments, e.g., built-in function?
  */
-normal_stmt:
+stmt:
 | expr SEP { Expr($1) }
 // TODO: support a, b = 1, 2?
 | IDENTIFIER ASSIGNMENT expr SEP { Assign($1, $3) }
@@ -97,16 +97,24 @@ normal_stmt:
 | FOR LEFT_PARENTHESIS IDENTIFIER IN expr RIGHT_PARENTHESIS loop_stmt_body { ForStmt($3, $5, $7) }
 | WHILE LEFT_PARENTHESIS expr RIGHT_PARENTHESIS loop_stmt_body { WhileStmt($3, $5) }
 | EXIT LEFT_PARENTHESIS expr RIGHT_PARENTHESIS SEP { Exit($3) }
+
+normal_stmt:
+| stmt { $1 }
 | RETURN expr SEP { raise(Failure ("Return outside functions")) }
+| BREAK SEP { raise(Failure ("Break outside loops"))  }
+| CONTINUE SEP { raise(Failure ("Continue outside loops"))  }
 
 func_stmt:
-| normal_stmt { $1 }
+| stmt { $1 }
 | RETURN expr SEP { Return($2) }
+| BREAK SEP { raise(Failure ("Break outside loops"))  }
+| CONTINUE SEP { raise(Failure ("Continue outside loops"))  }
 
 loop_stmt:
-| normal_stmt { $1 }
+| stmt { $1 }
 | BREAK SEP { Break }
 | CONTINUE SEP { Continue }
+| RETURN expr SEP { raise(Failure ("Return outside functions")) }
 
 stmt_body: LEFT_CURLY_BRACKET normal_stmts RIGHT_CURLY_BRACKET { $2 }
 
