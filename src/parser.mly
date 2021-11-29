@@ -137,12 +137,20 @@ loop_stmt_body: LEFT_CURLY_BRACKET loop_stmts RIGHT_CURLY_BRACKET { $2 }
 func_call: IDENTIFIER LEFT_PARENTHESIS exprs RIGHT_PARENTHESIS { FuncCall(FId($1), $3) }
 
 exprs:
+| { [] }
+| expr_list { $1 }
+
+expr_list:
 | expr { [$1] }
-| expr COMMA exprs { $1 :: $3 }
+| expr COMMA expr_list { $1 :: $3 }
 
 params:
+| { [] }
+| param_list { $1 }
+
+param_list:
 | IDENTIFIER { [$1] }
-| IDENTIFIER COMMA params { $1 :: $3 }
+| IDENTIFIER COMMA param_list { $1 :: $3 }
 
 /***************************************************************************************
                     Parallel Environment

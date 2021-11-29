@@ -3,8 +3,6 @@
 open Ast
 open Sast
 
-exception E of string
-
 module StringHash = Hashtbl.Make(struct
   type t = string
   let equal x y = x = y
@@ -13,12 +11,6 @@ end)
 
 let symbol_table = StringHash.create 10
 let function_table = StringHash.create 10
-
-let name_error id = "name " ^ id ^ " is not defined" 
-and invalid_type op = "invalid type for " ^ op
-and invalid_dim err = "invalid dimension: " ^ err
-and dummy_error = "dummy error"
-and make_err er = raise (E er)
 
 let rec equal_dim d1 d2=
   match d1, d2 with
@@ -34,7 +26,7 @@ let rec check_tensor = function
 | LRTensor(x) -> 
     (match check_tensor(x) with
       (TensorTup(t, nd, d0::d_), y) -> (TensorTup(t, nd+1, -1::-d0::d_), y)
-    | _ -> raise (E "ought not occur"))
+    | _ -> raise (Failure("ought not occur")))
 | NPTensor(x) -> check_tensor(x)
 | LRTensors(x1, x2) -> 
     let tdy1 = check_tensor(x1) in
@@ -43,9 +35,9 @@ let rec check_tensor = function
         (TensorTup(t1, nd1, d10::d1_), y1), (TensorTup(t2, nd2, d20::d2_), y2) -> 
           if t1 = t2 && equal_dim d1_ d2_ then 
             (TensorTup(t1, nd1+1, -1::-(d10 + d20)::d1_), Array.append y1 y2)
-          else if t1 <> t2 then raise (E "invalid type")
-          else raise (E "invalid dim")
-      | _, _ -> raise (E "ought not occur"))
+          else if t1 <> t2 then raise (Failure("invalid type"))
+          else raise (Failure("invalid dim"))
+      | _, _ -> raise (Failure("ought not occur")))
 | NPTensors(x1, x2) -> 
     let tdy1 = check_tensor(x1) in
     let tdy2 = check_tensor(x2) in
@@ -53,27 +45,27 @@ let rec check_tensor = function
         (TensorTup(t1, nd1, d10::d1_), y1), (TensorTup(t2, nd2, d20::d2_), y2) -> 
           if t1 = t2 && equal_dim d1_ d2_ then 
             (TensorTup(t1, nd1, (d10 + d20)::d1_), Array.append y1 y2)
-          else if t1 <> t2 then raise (E "invalid type")
-          else raise (E "invalid dim")
-      | _, _ -> raise (E "ought not occur"))
+          else if t1 <> t2 then raise (Failure("invalid type"))
+          else raise (Failure("invalid dim"))
+      | _, _ -> raise (Failure("ought not occur")))
 
 (* expr -> sexpr *)
 let rec check_expr symbol_table function_table = function
   Id(id) -> if StringHash.mem function_table id then StringHash.remove function_table id;
             if StringHash.mem symbol_table id then (SVoidTup, SId(id))
-            else raise (E "not defined")
+            else raise (Failure( "variable " ^ id ^ " not defined"))
 | FId(id) -> if StringHash.mem symbol_table id then StringHash.remove symbol_table id;
-             if StringHash.mem function_table id then (SVoidTup, SFId(id)) else raise (E "function not defined")
+             if StringHash.mem function_table id then (SVoidTup, SFId(id)) else raise (Failure("function " ^ id ^ " not defined"))
 | Binop(x1, bop, x2) -> (SVoidTup, SBinop(check_expr symbol_table function_table x1, bop, check_expr symbol_table function_table x2))
 | Tensor(x) -> (match check_tensor(x) with 
   | (TensorTup(t, n, d::d_), y) -> (STensorTup(t, n, Array.of_list d_), STensor(y))
-  | (_, _) -> raise (E "ought not occur"))
+  | (_, _) -> raise (Failure( "ought not occur")))
 | Print(e) -> (SVoidTup, SPrint(check_expr symbol_table function_table e))
 | FuncCall(e1, e2) -> let e1_ = check_expr symbol_table function_table e1 in
                       let e2_ = List.map (check_expr symbol_table function_table) e2 in
                       let FId(id) = e1 in
                       let argc = StringHash.find function_table id in
-                      if argc <> List.length(e2) then raise (E "the number of arguments mismatch")
+                      if argc <> List.length(e2) then raise (Failure("the number of arguments mismatch"))
                       else (SVoidTup, SFuncCall(id, e2_))
 
 (* stmt -> sstmt *)
