@@ -6,7 +6,16 @@ type literal =
   IntLit of int
 | FloatLit of float
 
-type bop = Add | Sub | Mul | DotMul | Div | FloorDiv | Pow | DotPow | Mod
+type bop = 
+(* Arithmetic operators*)
+Add | Sub | Mul | DotMul | Div | FloorDiv | Pow | DotPow | Mod
+
+(* Relational operators *)
+| Eq | Geq | Gt | Leq | Lt | Neq
+
+(* Logical operators *)
+(* | And | Or *)
+
 type uop = Transpose
 
 type tensor =

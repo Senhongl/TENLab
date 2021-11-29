@@ -1,7 +1,7 @@
 #include "tensor.h"
 
 /**
- * sample: [[1.1,2.0],[3.5,4.2]] / 0.5
+ * sample: [[1.1,2.0],[3.5,4.2]] - [[0.1,0.3],[2.2,6.2]]
  */
 
 torch::Tensor subtract_t(const torch::Tensor &x_t, const torch::Tensor &y_t)

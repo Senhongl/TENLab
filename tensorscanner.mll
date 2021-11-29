@@ -19,6 +19,14 @@ rule tokenize = parse
 | '.''^' { DOTPOW }
 | '%' { MOD }
 | ''' { TRANSPOSE }
+
+| '=''=' { IS_EQUAL }
+| '>''=' { IS_GEQ }
+| '>' { IS_GT }
+| '<''=' { IS_LEQ }
+| '<' { IS_LT }
+| '!''=' { IS_NOT_EQUAL }
+
 | digits as lit { INT_LITERAL(int_of_string lit) }
 | (digits '.' digit* exponent? | digits exponent | '.' digits exponent?) as lit { FLOAT_LITERAL(float_of_string lit) }
 | eof { EOF }

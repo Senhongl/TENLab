@@ -105,6 +105,30 @@ let translate sast =
       L.function_type i8ptr_t [| i8ptr_t |] in
     let transpose_func : L.llvalue = 
       L.declare_function "transpose" transpose_t the_module in
+    let equal_t : L.lltype = 
+      L.function_type i8ptr_t [| i8ptr_t; i8ptr_t |] in
+    let equal_func : L.llvalue = 
+      L.declare_function "equal" equal_t the_module in
+    let notequal_t : L.lltype = 
+      L.function_type i8ptr_t [| i8ptr_t; i8ptr_t |] in
+    let notequal_func : L.llvalue = 
+      L.declare_function "notequal" notequal_t the_module in
+    let greater_t : L.lltype = 
+      L.function_type i8ptr_t [| i8ptr_t; i8ptr_t |] in
+    let greater_func : L.llvalue = 
+      L.declare_function "greater" greater_t the_module in
+    let greaterequal_t : L.lltype = 
+      L.function_type i8ptr_t [| i8ptr_t; i8ptr_t |] in
+    let greaterequal_func : L.llvalue = 
+      L.declare_function "greaterequal" greaterequal_t the_module in
+    let less_t : L.lltype = 
+      L.function_type i8ptr_t [| i8ptr_t; i8ptr_t |] in
+    let less_func : L.llvalue = 
+      L.declare_function "less" less_t the_module in
+    let lessequal_t : L.lltype = 
+      L.function_type i8ptr_t [| i8ptr_t; i8ptr_t |] in
+    let lessequal_func : L.llvalue = 
+      L.declare_function "lessequal" lessequal_t the_module in
     let print_t : L.lltype = 
       L.function_type void_t [| i8ptr_t |] in
     let print_func : L.llvalue = 
@@ -124,6 +148,12 @@ let translate sast =
         | Pow -> L.build_call matpow_func
         | DotPow -> L.build_call dotpow_func
         | Mod -> L.build_call mod_func
+        | Eq -> L.build_call equal_func 
+        | Neq -> L.build_call notequal_func
+        | Geq -> L.build_call greaterequal_func 
+        | Gt -> L.build_call greater_func  
+        | Leq -> L.build_call lessequal_func 
+        | Lt -> L.build_call less_func  
         ) [| se1_ ; se2_ |] "tmpOp" builder
     | (_, SUnop(se1, uop)) -> 
         let se1_ = genExpr builder se1 in
