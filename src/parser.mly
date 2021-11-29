@@ -97,6 +97,7 @@ normal_stmt:
 | FOR LEFT_PARENTHESIS IDENTIFIER IN expr RIGHT_PARENTHESIS loop_stmt_body { ForStmt($3, $5, $7) }
 | WHILE LEFT_PARENTHESIS expr RIGHT_PARENTHESIS loop_stmt_body { WhileStmt($3, $5) }
 | EXIT LEFT_PARENTHESIS expr RIGHT_PARENTHESIS SEP { Exit($3) }
+| RETURN expr SEP { raise(Failure ("Return outside functions")) }
 
 func_stmt:
 | normal_stmt { $1 }
