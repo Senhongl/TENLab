@@ -53,16 +53,24 @@
 %%
 
 main:
-  stmts EOF { $1 }
+  normal_stmts EOF { $1 }
 
 
 /***************************************************************************************
                                 Statements
  ***************************************************************************************/
 
-stmts: 
+normal_stmts: 
 | { [] }
-| stmt stmts { $1::$2 }
+| normal_stmt normal_stmts { $1::$2 }
+
+func_stmts: 
+| { [] }
+| func_stmt func_stmts { $1::$2 }
+
+loop_stmts: 
+| { [] }
+| loop_stmt loop_stmts { $1::$2 }
 
 /*
  * A TENLab file should consist of a bunch of statements.
@@ -77,24 +85,34 @@ stmts:
  * (viii) while statement
  * (ix)   TODO: more statments, e.g., built-in function?
  */
-stmt:
+normal_stmt:
 | expr SEP { Expr($1) }
 // TODO: support a, b = 1, 2?
 | IDENTIFIER ASSIGNMENT expr SEP { Assign($1, $3) }
 | PARALLEL_DEFINE IDENTIFIER pe_body { PEDecl(Id($2), $3) }
 | USING IDENTIFIER { PEInvoke(Id($2)) }
-| DEFINE IDENTIFIER LEFT_PARENTHESIS params RIGHT_PARENTHESIS stmt_body { FuncDecl($2, $4, $6) }
+| DEFINE IDENTIFIER LEFT_PARENTHESIS params RIGHT_PARENTHESIS func_stmt_body { FuncDecl($2, $4, $6) }
 | IF LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt_body %prec NOELSE { IfStmt($3, $5, [EmptyStmt]) }
 | IF LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt_body ELSE stmt_body { IfStmt($3, $5, $7) }
-| FOR LEFT_PARENTHESIS IDENTIFIER IN expr RIGHT_PARENTHESIS stmt_body { ForStmt($3, $5, $7) }
-| WHILE LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt_body { WhileStmt($3, $5) }
-// keyword statements
-| RETURN expr SEP { Return($2) }
-| BREAK SEP { Break }
-| CONTINUE SEP { Continue }
+| FOR LEFT_PARENTHESIS IDENTIFIER IN expr RIGHT_PARENTHESIS loop_stmt_body { ForStmt($3, $5, $7) }
+| WHILE LEFT_PARENTHESIS expr RIGHT_PARENTHESIS loop_stmt_body { WhileStmt($3, $5) }
 | EXIT LEFT_PARENTHESIS expr RIGHT_PARENTHESIS SEP { Exit($3) }
 
-stmt_body: LEFT_CURLY_BRACKET stmts RIGHT_CURLY_BRACKET { $2 }
+func_stmt:
+| normal_stmt { $1 }
+| RETURN expr SEP { Return($2) }
+
+loop_stmt:
+| normal_stmt { $1 }
+| BREAK SEP { Break }
+| CONTINUE SEP { Continue }
+
+stmt_body: LEFT_CURLY_BRACKET normal_stmts RIGHT_CURLY_BRACKET { $2 }
+
+func_stmt_body: LEFT_CURLY_BRACKET func_stmts RIGHT_CURLY_BRACKET { $2 }
+
+loop_stmt_body: LEFT_CURLY_BRACKET loop_stmts RIGHT_CURLY_BRACKET { $2 }
+
 
 /***************************************************************************************
                         Function Call
@@ -140,9 +158,9 @@ map_funcs:
 | map_func { [$1] }
 | map_func map_funcs { $1 :: $2 }
 
-map_func: MAP IDENTIFIER LEFT_CURLY_BRACKET stmts RIGHT_CURLY_BRACKET { MapFunc(Id($2), $4) }
+map_func: MAP IDENTIFIER LEFT_CURLY_BRACKET normal_stmts RIGHT_CURLY_BRACKET { MapFunc(Id($2), $4) }
 
-reduce_func: REDUCE LEFT_CURLY_BRACKET stmts RIGHT_CURLY_BRACKET { ReduceFunc($3) }
+reduce_func: REDUCE LEFT_CURLY_BRACKET normal_stmts RIGHT_CURLY_BRACKET { ReduceFunc($3) }
 
 /***************************************************************************************
         All possible expressions, including binary expression and unary expression

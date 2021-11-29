@@ -10,7 +10,7 @@ Add | Sub | Mul | DotMul | Div | Pow | DotPow | Mod | FlrDiv
 
 (* Logical operators *)
 | And | Or
-   
+
 type tensortype = INT_Tensor | FLOAT_Tensor | STRING_Tensor | VAR_Tensor
 
 type dimtype = TensorTup of tensortype * int * int list | VoidTup
@@ -62,7 +62,7 @@ type expr =
 | FuncCall of expr * expr list
 
 (* Tensor *)
-and tensor = 
+and tensor =
   EmptyTensor
 | LRTensor of tensor
 | NPTensor of tensor
@@ -175,7 +175,7 @@ let rec string_of_stmt = function
 | IfStmt(e1, s2, s3) -> (match s3 with
     | [EmptyStmt] -> "if (" ^ string_of_expr e1 ^ ")\n{\n" ^ String.concat "," (List.map string_of_stmt s2) ^ "}\n"
     | _ -> "if (" ^ string_of_expr e1 ^ ")\n{\n" ^ String.concat "," (List.map string_of_stmt s2) ^ "} else {" ^ String.concat "," (List.map string_of_stmt s3) ^ "\n}\n")
-| ForStmt(str1, e1, s1) -> "for (" ^ str1 ^ " in " ^ string_of_expr e2 ^ ") {\n" ^ String.concat "," (List.map string_of_stmt s1) ^ "\n}\n"
+| ForStmt(str1, e1, s1) -> "for (" ^ str1 ^ " in " ^ string_of_expr e1 ^ ") {\n" ^ String.concat "," (List.map string_of_stmt s1) ^ "\n}\n"
 | WhileStmt(e1, s1) -> "while (" ^ string_of_expr e1 ^ ") {\n" ^ String.concat "," (List.map string_of_stmt s1) ^ "\n}\n"
 (* Parallel Environment *)
 | PEDecl(e1, s1) -> "parallel_define " ^ string_of_expr e1 ^ "{\n" ^ String.concat "," (List.map string_of_stmt s1) ^ "}\n"
