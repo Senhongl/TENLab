@@ -12,6 +12,10 @@ TENLab is an imperative language that supports distributed matrix calculation an
     - for statement check
     - while statemnt check
     - parallel environment statement check
+- statement:
+  - change the assign from statement to expression for a = b = c;
+- Global & Local value:
+  - test-gl.tl is an example
 - Syntax check:
   - add some syntax check: e.g., return can only appear within a function
 - Tensors:

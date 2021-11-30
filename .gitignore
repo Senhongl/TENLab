@@ -17,4 +17,6 @@ build
 *.ll
 *.s
 test
+*.exe
 *.diff
+.vscode
