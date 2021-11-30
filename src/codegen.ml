@@ -34,11 +34,6 @@ type namespace = {
 
 exception E of string (* debug information *)
 
-let seq len =
-  let rec aux len acc =
-    if len < 0 then acc else aux (len - 1) (len::acc)
-  in aux (len - 1) []
-
 (* let gen_array ltype arr =
     let n = Array.length arr in
     let newarray = Array.make n 
@@ -116,17 +111,14 @@ let translate sstmts =
   (* set local pointer *)
   let set_localptr local_builder symbol_table args_name args_val =
     L.set_value_name args_name args_val;
-    let alloca = L.build_alloca tensor_t args_name local_builder in
-        (* let args_val = L.const_bitcast args_val tensor_pt in *)
+    let alloca = L.build_alloca i8ptr_t args_name local_builder in
         ignore(L.build_store args_val alloca local_builder);
-        (* let ptr = L.build_load alloca "local" local_builder in *)
-        (* let ptr = L.const_bitcast ptr tensor_t in *)
         StringHash.add symbol_table args_name alloca in
 
   (* create a new tensor *)
   let build_tensor the_namespace ltype dtype ndims dims data =
     let size = Array.length data in
-    let tensor = L.build_malloc tensor_t "tensor" the_namespace.builder in
+    let tensor = L.build_alloca tensor_t "raw_tensor" the_namespace.builder in
     (* store dtype *)
     let dtypeptr = L.build_struct_gep tensor 0 "dtype" the_namespace.builder in
     ignore(L.build_store dtype dtypeptr the_namespace.builder);
@@ -137,23 +129,23 @@ let translate sstmts =
 
     (* store dims *)
     let size = Array.length dims in
-    let dimsptr = L.build_malloc (L.array_type i8_t size) "dims" the_namespace.builder in
+    let dimsptr = L.build_alloca (L.array_type i8_t size) "dims" the_namespace.builder in
     let dimsptr_as_i8ptr = L.build_bitcast dimsptr i8ptr_t "dims_as_i8ptr" the_namespace.builder in
     let store_dims dim idx = 
       let gep_addr = L.build_gep dimsptr [|L.const_int i8_t 0; L.const_int i8_t idx|] "elmptr" the_namespace.builder in
       ignore(L.build_store dim gep_addr the_namespace.builder);
     in
-    ignore(List.iter2 store_dims (Array.to_list dims) (seq size));
+    ignore(List.iter2 store_dims (Array.to_list dims) (List.init size (fun i -> i)));
 
     (* store data *)
     let size = Array.length data in
-    let dataptr = L.build_malloc (L.array_type ltype size) "data" the_namespace.builder in
+    let dataptr = L.build_alloca (L.array_type ltype size) "data" the_namespace.builder in
     let dataptr_as_i8ptr = L.build_bitcast dataptr i8ptr_t "data_as_i8ptr" the_namespace.builder in
     let store_data ten idx = 
       let gep_addr = L.build_gep dataptr [|L.const_int ltype 0; L.const_int ltype idx|] "elmptr" the_namespace.builder in
       ignore(L.build_store ten gep_addr the_namespace.builder);
     in
-    ignore(List.iter2 store_data (Array.to_list data) (seq size));
+    ignore(List.iter2 store_data (Array.to_list data) (List.init size (fun i -> i)));
     
 
     let dimsptr_of_tensor = L.build_struct_gep tensor 2 "dimsptr" the_namespace.builder in
@@ -162,19 +154,8 @@ let translate sstmts =
     let dataptr_of_tensor = L.build_struct_gep tensor 3 "dataptr" the_namespace.builder in
     ignore(L.build_store dataptr_as_i8ptr dataptr_of_tensor the_namespace.builder);
 
-    L.build_load tensor "tensor" the_namespace.builder
+    L.build_bitcast tensor i8ptr_t "tensor" the_namespace.builder
   in
-
-  (* cast tensor to void pointer *)
-  let cast_tensor_to_voidpt the_namespace name tensor =
-    let alloca = L.build_alloca tensor_t name the_namespace.builder in
-    ignore(L.build_store tensor alloca the_namespace.builder);
-    L.build_bitcast alloca i8ptr_t name the_namespace.builder in
-
-  (* cast void pointer back to tensor *)
-  let cast_voidpt_to_tensor the_namespace name voidpt =
-    let cast_val = L.build_bitcast voidpt tensor_pt name the_namespace.builder in
-    L.build_load cast_val name the_namespace.builder in
   
   (* add terminal for function definition *)
   let add_terminal builder instr = 
@@ -205,10 +186,10 @@ let translate sstmts =
   L.declare_function "bool_of_zero" bool_of_zero_t the_module in
  
   let lookup id the_namespace = if StringHash.mem the_namespace.symbol_table id then StringHash.find the_namespace.symbol_table id
-                                else if the_namespace.global then let init = L.define_global id (L.const_null tensor_t) the_module in
+                                else if the_namespace.global then let init = L.define_global id (L.const_pointer_null i8ptr_t) the_module in
                                                                   ignore(StringHash.add the_namespace.symbol_table id init);
                                                                   init
-                                else let init = L.build_alloca tensor_t id the_namespace.builder in
+                                else let init = L.build_alloca i8ptr_t id the_namespace.builder in
                                      ignore(StringHash.add the_namespace.symbol_table id init);
                                      init in
 
@@ -219,14 +200,12 @@ let translate sstmts =
     | (_, SBinop(se1, op, se2)) -> 
         let se1_ = genExpr the_namespace se1
         and se2_ = genExpr the_namespace se2 in
-        let se1_ = cast_tensor_to_voidpt the_namespace "arg1" se1_
-        and se2_ = cast_tensor_to_voidpt the_namespace "arg2" se2_ in
-        let tmpOp = (match op with
+        (match op with
           Add -> L.build_call add_func
         | Mul -> L.build_call mult_func
         | Eq  -> L.build_call equal_func 
-        ) [| se1_ ; se2_ |] "tmpOp" the_namespace.builder in
-        cast_voidpt_to_tensor the_namespace "tmpOp" tmpOp
+        ) [| se1_ ; se2_ |] "tmpOp" the_namespace.builder
+        (* cast_voidpt_to_tensor the_namespace "tmpOp" tmpOp *)
     | (STensorTup(t, n, d), STensor(y)) ->
         (* (match t with 
           INT_Tensor -> set_constptr "stensor" (L.const_named_struct tensor_t 
@@ -243,17 +222,15 @@ let translate sstmts =
         | FLOAT_Tensor -> build_tensor the_namespace float_t (gen_value i8_t 1) (gen_value i8_t n) (gen_dim i8_t d) (gen_array float_t y)
         )
     | (_, SPrint(se1)) -> let se1_ = genExpr the_namespace se1 in
-                          let tmp = cast_tensor_to_voidpt the_namespace "print_arg" se1_ in
-                          L.build_call print_func [| tmp |] "" the_namespace.builder
+                          L.build_call print_func [| se1_ |] "" the_namespace.builder
     | (_, SFuncCall(str1, se1)) -> let (the_function, the_builder) = StringHash.find the_namespace.function_table str1 in
                                    let argv = List.map (genExpr the_namespace) se1 in
-                                   (* let argv = List.map (cast_tensor_to_voidpt the_namespace "argv") tensor_argv in *)
                                    L.build_call the_function (Array.of_list argv) "ret" the_namespace.builder
     | (_, _) -> gen_value i8ptr_t 0 in
 
   let build_fn fname argc =
     let ftype : L.lltype = 
-      L.function_type tensor_t (Array.make argc tensor_t) in
+      L.function_type i8ptr_t (Array.make argc i8ptr_t) in
     let the_function = L.define_function fname ftype the_module in
     let builder = L.builder_at_end context (L.entry_block the_function) in
     (the_function, builder)
@@ -265,8 +242,6 @@ let translate sstmts =
     | SAssign(id, se1) -> let rhs = genExpr the_namespace se1 in
                           let lhs = lookup id the_namespace in
                           ignore(L.build_store rhs lhs the_namespace.builder);
-                          (* if StringHash.mem the_namespace.symbol_table id then StringHash.remove the_namespace.symbol_table id;
-                          StringHash.add the_namespace.symbol_table id rhs; *)
                           the_namespace
     | SFuncDecl(str1, str2, ss1) -> let argc = List.length(str2) in
                              let (the_function, the_builder) = build_fn str1 argc in
@@ -275,13 +250,12 @@ let translate sstmts =
                              let local_function_table = StringHash.copy the_namespace.function_table in
                              let argv = Array.to_list (L.params the_function) in
                              List.iter2 (set_localptr the_builder local_symbol_table) str2 argv;
-                             let build_return b = L.build_ret (L.const_null tensor_t) b in
+                             let build_return b = L.build_ret (L.const_pointer_null i8ptr_t) b in
                              let local_namespace = {symbol_table = local_symbol_table; function_table = local_function_table; func = the_function; builder = the_builder; global = false} in
                              let local_namespace = List.fold_left stmt local_namespace ss1 in
                              ignore(add_terminal the_builder build_return); 
                              the_namespace (* return the main namespace *)
     | SIfStmt(se1, ss1, ss2) -> let se1_ = genExpr the_namespace se1 in
-                                let se1_ = cast_tensor_to_voidpt the_namespace "bool_of_zero" se1_ in
                                 let bool_val = L.build_call bool_of_zero [| se1_ |] "bool" the_namespace.builder in
                                 let merge_bb = L.append_block context "merge" the_namespace.func in
                                 let build_br_merge = L.build_br merge_bb in
@@ -324,7 +298,6 @@ let translate sstmts =
                                                      builder = pred_builder;
                                                      global = the_namespace.global} in
                               let se1_ = genExpr local_namespace se1 in
-                              let se1_ = cast_tensor_to_voidpt local_namespace "bool_of_zero" se1_ in
                               let bool_val = L.build_call bool_of_zero [| se1_ |] "bool" local_namespace.builder in
                               let merge_bb = L.append_block context "merge" the_namespace.func in
                               ignore(L.build_cond_br bool_val body_bb merge_bb pred_builder);
