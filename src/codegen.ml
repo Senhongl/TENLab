@@ -124,7 +124,7 @@ let translate sstmts =
         StringHash.add symbol_table args_name alloca in
 
   (* create a new tensor *)
-  let build_tensor the_namespace dtype ndims dims data =
+  let build_tensor the_namespace ltype dtype ndims dims data =
     let size = Array.length data in
     let tensor = L.build_malloc tensor_t "tensor" the_namespace.builder in
     (* store dtype *)
@@ -139,19 +139,19 @@ let translate sstmts =
     let size = Array.length dims in
     let dimsptr = L.build_malloc (L.array_type i8_t size) "dims" the_namespace.builder in
     let dimsptr_as_i8ptr = L.build_bitcast dimsptr i8ptr_t "dims_as_i8ptr" the_namespace.builder in
-    let store_dims elm idx = 
+    let store_dims dim idx = 
       let gep_addr = L.build_gep dimsptr [|L.const_int i8_t 0; L.const_int i8_t idx|] "elmptr" the_namespace.builder in
-      ignore(L.build_store elm gep_addr the_namespace.builder);
+      ignore(L.build_store dim gep_addr the_namespace.builder);
     in
     ignore(List.iter2 store_dims (Array.to_list dims) (seq size));
 
     (* store data *)
     let size = Array.length data in
-    let dataptr = L.build_malloc (L.array_type int_t size) "data" the_namespace.builder in
+    let dataptr = L.build_malloc (L.array_type ltype size) "data" the_namespace.builder in
     let dataptr_as_i8ptr = L.build_bitcast dataptr i8ptr_t "data_as_i8ptr" the_namespace.builder in
-    let store_data elm idx = 
-      let gep_addr = L.build_gep dataptr [|L.const_int int_t 0; L.const_int int_t idx|] "elmptr" the_namespace.builder in
-      ignore(L.build_store elm gep_addr the_namespace.builder);
+    let store_data ten idx = 
+      let gep_addr = L.build_gep dataptr [|L.const_int ltype 0; L.const_int ltype idx|] "elmptr" the_namespace.builder in
+      ignore(L.build_store ten gep_addr the_namespace.builder);
     in
     ignore(List.iter2 store_data (Array.to_list data) (seq size));
     
@@ -239,8 +239,8 @@ let translate sstmts =
             in [|gen_value i8_t 1; gen_value i8_t n; dims; data|])) the_module tensor_pt
         )  *)
         (match t with 
-          INT_Tensor -> build_tensor the_namespace (gen_value i8_t 0) (gen_value i8_t n) (gen_dim i8_t d) (gen_array int_t y)
-        | FLOAT_Tensor -> build_tensor the_namespace (gen_value i8_t 1) (gen_value i8_t n) (gen_dim i8_t d) (gen_array float_t y)
+          INT_Tensor -> build_tensor the_namespace int_t (gen_value i8_t 0) (gen_value i8_t n) (gen_dim i8_t d) (gen_array int_t y)
+        | FLOAT_Tensor -> build_tensor the_namespace float_t (gen_value i8_t 1) (gen_value i8_t n) (gen_dim i8_t d) (gen_array float_t y)
         )
     | (_, SPrint(se1)) -> let se1_ = genExpr the_namespace se1 in
                           let tmp = cast_tensor_to_voidpt the_namespace "print_arg" se1_ in
