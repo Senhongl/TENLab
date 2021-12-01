@@ -18,8 +18,8 @@ extern "C" void *matpow(void *a, void *b)
     tensor *x = (tensor *)a;
     tensor *y = (tensor *)b;
 
-    check(y->type == 0, "Second tensor should have int type");
-    check(y->ndim == 0, "Second tensor should be 0-dim tensor");
+    check(y->type == 0, "Second tensor should have int type\n");
+    check(y->ndim == 0, "Second tensor should be 0-dim tensor\n");
 
     return (void *)fromTensor(matpow_t(toTensor(x), toTensor(y)));
 }

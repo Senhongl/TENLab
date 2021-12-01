@@ -19,8 +19,8 @@ extern "C" void *mod(void *a, void *b)
     tensor *x = (tensor *)a;
     tensor *y = (tensor *)b;
 
-    check(x->type == y->type, "Second tensor should have int type");
-    check(y->ndim == 0, "Second tensor should be 0-dim tensor");
+    check(x->type == y->type, "Second tensor should have int type\n");
+    check(y->ndim == 0, "Second tensor should be 0-dim tensor\n");
 
     return (void *)fromTensor(mod_t(toTensor(x), toTensor(y)));
 }

@@ -22,8 +22,16 @@ extern "C" void *dotpow(void *a, void *b)
     tensor *x = (tensor *)a;
     tensor *y = (tensor *)b;
 
-    check(y->type == 0, "Second tensor should have int type");
-    check(y->ndim == 0, "Second tensor should be 0-dim tensor");
+    check(y->type == 0, "Second tensor should have int type\n");
+    check(x->ndim == y->ndim, "Not consistent dimension\n");
+    bool flag = true;
+    for (int i = 0; i < x->ndim; i++) {
+        if (x->dims[i] != y->dims[i]) {
+            flag = false;
+            break;
+        }
+    }
+    check(flag == true, "Not consistent dimension\n");
 
     return (void *)fromTensor(dotpow_t(toTensor(x), toTensor(y)));
 }

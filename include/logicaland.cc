@@ -1,12 +1,24 @@
 #include "tensor.h"
 
-torch::Tensor greater_t(const torch::Tensor &x_t, const torch::Tensor &y_t)
+/**
+ * sample: [[1,2,3],[4,1,0]] && [[1,0,5],[0,2,0]]  
+ * output:
+ * 1  0  1
+ * 0  1  0
+ * [ CPUIntType{2,3} ]
+ * 
+ * sample: [1] && [0]  
+ *  0
+ * [ CPUIntType{1} ]
+ */
+
+torch::Tensor logicaland_t(const torch::Tensor &x_t, const torch::Tensor &y_t)
 {
-    torch::Tensor z_t = x_t > y_t;
+    torch::Tensor z_t = torch::logical_and(x_t,y_t);
     return z_t.toType(torch::kInt32);
 }
 
-extern "C" void *greater(void *a, void *b)
+extern "C" void *logicaland(void *a, void *b)
 {
     tensor *x = (tensor *)a;
     tensor *y = (tensor *)b;
@@ -22,5 +34,5 @@ extern "C" void *greater(void *a, void *b)
     }
     check(flag == true, "Not consistent dimension\n");
 
-    return (void *)fromTensor(greater_t(toTensor(x), toTensor(y)));
+    return (void *)fromTensor(logicaland_t(toTensor(x), toTensor(y)));
 }

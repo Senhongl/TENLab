@@ -14,7 +14,7 @@ Add | Sub | Mul | DotMul | Div | FloorDiv | Pow | DotPow | Mod
 | Eq | Geq | Gt | Leq | Lt | Neq
 
 (* Logical operators *)
-(* | And | Or *)
+| And | Or
 
 type uop = Transpose
 

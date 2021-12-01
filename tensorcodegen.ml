@@ -133,6 +133,14 @@ let translate sast =
       L.function_type void_t [| i8ptr_t |] in
     let print_func : L.llvalue = 
       L.declare_function "print" print_t the_module in
+    let logicaland_t : L.lltype = 
+      L.function_type i8ptr_t [| i8ptr_t; i8ptr_t |] in
+    let logicaland_func : L.llvalue = 
+      L.declare_function "logicaland" logicaland_t the_module in
+    let logicalor_t : L.lltype = 
+      L.function_type i8ptr_t [| i8ptr_t; i8ptr_t |] in
+    let logicalor_func : L.llvalue = 
+      L.declare_function "logicalor" logicalor_t the_module in
   
     let rec genExpr builder se = match se with
       (_, SBinop(se1, bop, se2)) -> 
@@ -153,7 +161,9 @@ let translate sast =
         | Geq -> L.build_call greaterequal_func 
         | Gt -> L.build_call greater_func  
         | Leq -> L.build_call lessequal_func 
-        | Lt -> L.build_call less_func  
+        | Lt -> L.build_call less_func
+        | And -> L.build_call logicaland_func 
+        | Or -> L.build_call logicalor_func     
         ) [| se1_ ; se2_ |] "tmpOp" builder
     | (_, SUnop(se1, uop)) -> 
         let se1_ = genExpr builder se1 in

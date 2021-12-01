@@ -21,8 +21,8 @@ extern "C" void *floordivide(void *a, void *b)
     tensor *x = (tensor *)a;
     tensor *y = (tensor *)b;
 
-    check(x->type == y->type, "Not consistent type");
-    check(y->ndim == 0, "Second tensor should be 0-dim tensor");
+    check(x->type == y->type, "Not consistent type\n");
+    check(y->ndim == 0, "Second tensor should be 0-dim tensor\n");
 
     return (void *)fromTensor(floordivide_t(toTensor(x), toTensor(y)));
 }

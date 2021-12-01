@@ -2,9 +2,11 @@
 
 %token L C R ADD SUB MUL DOTMUL DIV FLOORDIV POW DOTPOW MOD TRANSPOSE EOF 
 %token IS_EQUAL IS_GEQ IS_GT IS_LEQ IS_LT IS_NOT_EQUAL
+%token AND OR
 %token <int> INT_LITERAL
 %token <float> FLOAT_LITERAL
 
+%left AND OR
 %left IS_EQUAL IS_GEQ IS_GT IS_LEQ IS_LT IS_NOT_EQUAL
 %left ADD, SUB, MOD
 %left MUL, DOTMUL, DIV, FLOORDIV, POW, DOTPOW
@@ -34,6 +36,9 @@ expr:
   | expr IS_LEQ expr { Binop($1, Leq, $3) }
   | expr IS_LT expr { Binop($1, Lt, $3) }
   | expr IS_NOT_EQUAL expr { Binop($1, Neq, $3) }
+
+  | expr AND expr { Binop($1, And, $3) }
+  | expr OR expr { Binop($1, Or, $3) }
 
   | expr TRANSPOSE { Unop($1, Transpose) }
   | tensor { Tensor($1) }
