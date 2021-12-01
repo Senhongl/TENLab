@@ -141,6 +141,10 @@ let translate sast =
       L.function_type i8ptr_t [| i8ptr_t; i8ptr_t |] in
     let logicalor_func : L.llvalue = 
       L.declare_function "logicalor" logicalor_t the_module in
+    let logicalnot_t : L.lltype = 
+      L.function_type i8ptr_t [| i8ptr_t |] in
+    let logicalnot_func : L.llvalue = 
+      L.declare_function "logicalnot" logicalnot_t the_module in
   
     let rec genExpr builder se = match se with
       (_, SBinop(se1, bop, se2)) -> 
@@ -163,12 +167,17 @@ let translate sast =
         | Leq -> L.build_call lessequal_func 
         | Lt -> L.build_call less_func
         | And -> L.build_call logicaland_func 
-        | Or -> L.build_call logicalor_func     
+        | Or -> L.build_call logicalor_func         
         ) [| se1_ ; se2_ |] "tmpOp" builder
     | (_, SUnop(se1, uop)) -> 
         let se1_ = genExpr builder se1 in
         (match uop with
           Transpose -> L.build_call transpose_func
+        ) [| se1_ |] "tmpOp" builder
+    | (_, SLunop(luop, se1)) -> 
+        let se1_ = genExpr builder se1 in
+        (match luop with
+          Not -> L.build_call logicalnot_func
         ) [| se1_ |] "tmpOp" builder
     | (STensorTup(t, n, d), STensor(y)) ->
         (match t with 

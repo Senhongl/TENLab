@@ -29,6 +29,7 @@ rule tokenize = parse
 
 | '&''&' { AND }
 | '|''|' { OR }
+| '!' { LNOT }
 
 | digits as lit { INT_LITERAL(int_of_string lit) }
 | (digits '.' digit* exponent? | digits exponent | '.' digits exponent?) as lit { FLOAT_LITERAL(float_of_string lit) }
