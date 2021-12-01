@@ -18,6 +18,8 @@ Add | Sub | Mul | DotMul | Div | FloorDiv | Pow | DotPow | Mod
 
 type uop = Transpose
 
+type luop = Not
+
 type tensor =
   LRTensor of tensor
 | NPTensor of tensor
@@ -28,4 +30,5 @@ type tensor =
 type expr =
   Binop of expr * bop * expr
 | Unop of expr * uop
+| Lunop of luop * expr
 | Tensor of tensor
