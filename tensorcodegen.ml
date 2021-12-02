@@ -96,7 +96,47 @@ let translate sast =
             (let dims = set_constptr "sdim" (gen_dim i8_t d) the_module i8ptr_t
             and data = set_constptr "sdata" (gen_array float_t y) the_module i8ptr_t
             in [|gen_value i8_t 1; gen_value i8_t n; dims; data|])) the_module i8ptr_t
-        ) 
+        )
+    | (_, SVtensor(x)) -> let rec gen_vartensor = function
+        Tensor0(x) -> (match x with
+          IntLit(y) -> let ptrx = set_constptr "stensor" (L.const_named_struct tensor_t 
+            (let dims = set_constptr "sdim" (gen_dim i8_t [||]) the_module i8ptr_t
+            and data = set_constptr "sdata" (gen_array int_t [|x|]) the_module i8ptr_t
+            in [|gen_value i8_t 0; gen_value i8_t 0; dims; data|])) the_module i8ptr_t
+          in [|ptrx|]
+        | FloatLit(y) -> let ptrx = set_constptr "stensor" (L.const_named_struct tensor_t 
+            (let dims = set_constptr "sdim" (gen_dim i8_t [||]) the_module i8ptr_t
+            and data = set_constptr "sdata" (gen_array float_t [|x|]) the_module i8ptr_t
+            in [|gen_value i8_t 1; gen_value i8_t 0; dims; data|])) the_module i8ptr_t
+          in [|ptrx|])
+      | LRTensor(x) -> let y = gen_vartensor(x) in
+            let ptrx = set_constptr "stensor" (L.const_named_struct tensor_t 
+            (let dims = set_constptr "sdim" (gen_dim i8_t [|Array.length(y)|]) the_module i8ptr_t
+            and data = set_constptr "sdata" (L.const_array i8ptr_t y) the_module i8ptr_t
+            in [|gen_value i8_t 3; gen_value i8_t 1; dims; data|])) the_module i8ptr_t
+          in [|ptrx|]
+      | LRTensors(x1, x2) -> let y1 = gen_vartensor(x1) and y2 = gen_vartensor(x2) in
+            let ptrx = set_constptr "stensor" (L.const_named_struct tensor_t 
+            (let dims = set_constptr "sdim" (gen_dim i8_t [|Array.length(y1)+Array.length(y2)|]) the_module i8ptr_t
+            and data = set_constptr "sdata" (L.const_array i8ptr_t (Array.append y1 y2)) the_module i8ptr_t
+            in [|gen_value i8_t 3; gen_value i8_t 1; dims; data|])) the_module i8ptr_t
+          in [|ptrx|]
+      | NPTensor(x) -> gen_vartensor(x)
+      | NPTensors(x1, x2) -> let y1 = gen_vartensor(x1) and y2 = gen_vartensor(x2) in 
+        Array.append y1 y2
+      in let y = gen_vartensor(x) in y.(0)
+    | (_, SASexpr(x)) -> (match x with 
+        Ident(s) -> gen_value i8ptr_t 0 (*Do something*)
+      | Idind(s, x) -> (match x with
+          (nlist, indlist) -> let rec gen_indlist = function
+            [] -> [||]
+          | (n, d, y)::indlist_ -> let i0 = genExpr builder (STensorTup(INT_Tensor, n, d), STensor(y)) in 
+            let y1 = [|i0|] and y2 = gen_indlist(indlist_) in Array.append y1 y2 in 
+            set_constptr "stensor" (L.const_named_struct tensor_t 
+            (let dims = set_constptr "sdim" (gen_dim i8_t [|nlist|]) the_module i8ptr_t
+            and data = set_constptr "sdata" (L.const_array i8ptr_t (gen_indlist(indlist))) the_module i8ptr_t
+            in [|gen_value i8_t 3; gen_value i8_t 1; dims; data|])) the_module i8ptr_t)
+      )
     | (_, _) -> gen_value i8ptr_t 0 in
 
   let builder = L.builder_at_end context (L.entry_block the_function) in

@@ -20,5 +20,6 @@ set_property(TARGET func PROPERTY CXX_STANDARD 14)
 set(EXECUTABLE_OUTPUT_PATH "..")
 
 add_executable(test $<TARGET_OBJECTS:func> test.s)
+#add_executable(test main.cc)
 target_link_libraries(test "${TORCH_LIBRARIES}")
 set_property(TARGET test PROPERTY CXX_STANDARD 14)

@@ -1,4 +1,4 @@
-type tensortype = INT_Tensor | FLOAT_Tensor
+type tensortype = INT_Tensor | FLOAT_Tensor(* | VAR_Tensor*)
 
 type dimtype = TensorTup of tensortype * int * int list | VoidTup
 
@@ -15,6 +15,16 @@ type tensor =
 | NPTensors of tensor * tensor
 | Tensor0 of literal
 
+type asexpr = 
+  Ident of string
+| Idind of string * tensor
+
 type expr =
   Binop of expr * op * expr
 | Tensor of tensor
+| VarTs of tensor
+| ASexpr of asexpr
+
+type stmt = 
+  Expr of expr
+| Assign of asexpr * expr
