@@ -16,7 +16,7 @@ extern "C" void *index_get(void *tena, void *inda)
 
     tensor **indices = (tensor **)indx->data;
     for (int i = 0; i < dim; i++) {
-        indlist.push_back(toTensor(indices[i]));
+        indlist.push_back(toTensor(indices[i]).to(torch::kInt64));
     }
 
     return (void *)fromTensor(index_get_t(toTensor(tenx), indlist));

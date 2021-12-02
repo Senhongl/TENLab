@@ -56,6 +56,7 @@ let rec check_intv = function
     (match y1, y2 with
       (n1, ind1), (n2, ind2) -> (n1+n2, ind1@ind2))
 | _ -> raise (E "wrong format of index")
+
 (* expr -> sexpr *)
 let rec check_expr = function
   Binop(x1, op, x2) -> (SVoidTup, SBinop(check_expr(x1), op, check_expr(x2)))
