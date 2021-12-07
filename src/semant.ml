@@ -9,8 +9,11 @@ module StringHash = Hashtbl.Make(struct
   let hash = Hashtbl.hash
 end)
 
+module StringSet = Set.Make(String)
+
 let symbol_table = StringHash.create 10
 let function_table = StringHash.create 10
+let pe_table = StringSet.empty
 
 let rec equal_dim d1 d2=
   match d1, d2 with
@@ -98,6 +101,34 @@ let rec check_stmt symbol_table function_table = function
 | Continue -> SContinue
 | Exit(e1) -> let e1_ = check_expr symbol_table function_table e1 in
               SExit(e1_)
+| PEInvoke(s1) -> if (StringSet.exists (fun a -> (a = s1)) pe_table) then SPEInvoke(s1) else raise (Failure("PE does not exist"))
+| PEEnd(s1) -> if (StringSet.exists (fun a -> (a = s1)) pe_table) then SPEEnd(s1) else raise (Failure("PE does not exist"))
 
-let check stmts = 
-  List.map (check_stmt symbol_table function_table) stmts
+let check_mapf s f (name,statements) = 
+let ps = StringHash.copy s in
+let fs = StringHash.copy f in
+(name, List.map (check_stmt ps fs) statements)
+
+let check_po psymbol_table pfunction_table po =
+let ap x = 
+ignore(List.iter (fun s -> StringHash.add psymbol_table s (SVoidTup, SVoidExpr)) x); x
+in
+let app x =
+ignore(List.iter (fun (name,_) -> StringHash.add psymbol_table name (SVoidTup, SVoidExpr)) po.mapfuncs); x
+in
+{
+  soperator = po.operator;
+  sparams = ap po.params; 
+  sheadstmt = List.map (check_stmt psymbol_table pfunction_table) po.headstmt;
+  smapfuncs = List.map (check_mapf psymbol_table pfunction_table) po.mapfuncs;
+  sreducefunc = List.map (check_stmt psymbol_table pfunction_table) (app po.reducefunc)
+}
+
+let check_pe (name, pos) = 
+let po_symbol_table = StringHash.create 10 in
+let po_function_table = StringHash.create 10 in
+ignore(StringSet.add name pe_table);
+(name, List.map (check_po po_symbol_table po_function_table) pos)
+
+let check (pes,stmts) = 
+  (List.map check_pe pes, List.map (check_stmt symbol_table function_table) stmts)
