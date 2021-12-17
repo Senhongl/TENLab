@@ -12,8 +12,6 @@ http://llvm.moe/ocaml/
 
 *)
 
-(* a hello world version of codegen *)
-
 module L = Llvm
 open Ast
 open Sast 
@@ -33,26 +31,6 @@ type namespace = {
 }
 
 exception E of string (* debug information *)
-
-(* let gen_array ltype arr =
-    let n = Array.length arr in
-    let newarray = Array.make n 
-      (match ltype with
-        int_t -> L.const_int ltype 0
-      | float_t -> L.const_float ltype 0.) in
-    for i = 0 to (Array.length arr)-1 do
-      newarray.(i) <-  
-        (match arr.(i) with
-          IntLit(x) -> L.const_int ltype x
-        | FloatLit(x) -> L.const_float ltype x)
-    done; L.const_array ltype newarray
-  
-let gen_dim ltype arr = 
-  let n = Array.length arr in
-  let newarray = Array.make n (L.const_int ltype 0) in
-  for i = 0 to (Array.length arr)-1 do
-      newarray.(i) <-  L.const_int ltype arr.(i)
-  done; L.const_array ltype newarray *)
 
 let gen_array ltype arr =
     let n = Array.length arr in
@@ -76,13 +54,6 @@ let gen_dim ltype arr =
 
 let gen_value ltype value = L.const_int ltype value
 
-(* let set_constptr name lvalue lmodule ltype = 
-  let global_value = L.define_global name lvalue lmodule in
-      L.set_global_constant true global_value; 
-      L.set_linkage L.Linkage.Private global_value;
-      L.set_unnamed_addr true global_value;
-      L.const_bitcast global_value ltype *)
-
 let translate sstmts =
   let global_symbol_table = StringHash.create 10 in
   let global_function_table = StringHash.create 10 in
@@ -95,6 +66,7 @@ let translate sstmts =
   and i8_t      = L.i8_type       context
   and bool_t    = L.i1_type       context
   and float_t   = L.double_type   context
+  and i64_t     = L.i64_type      context
   and void_t    = L.void_type     context  in
   let i8ptr_t   = L.pointer_type  i8_t
   and tensor_t = L.named_struct_type context "tensor_t" 
@@ -103,22 +75,22 @@ let translate sstmts =
         L.struct_set_body tensor_t [| i8_t; i8_t; i8ptr_t; i8ptr_t |] false;
 
   let tensor_pt = L.pointer_type  tensor_t in
-
+  let i8_double_ptr_t = L.pointer_type i8ptr_t in
   (* init *)
   let function_type = L.function_type i8_t [||] in
   let main_function = L.define_function "main" function_type the_module in
 
   (* set local pointer *)
   let set_localptr local_builder symbol_table args_name args_val =
-    L.set_value_name args_name args_val;
     let alloca = L.build_alloca i8ptr_t args_name local_builder in
         ignore(L.build_store args_val alloca local_builder);
         StringHash.add symbol_table args_name alloca in
 
-  (* create a new tensor *)
-  let build_tensor the_namespace ltype dtype ndims dims data =
+
+  (* create a new tensor *) 
+  let build_tensor the_namespace ltype itype dtype ndims dims data =
     let size = Array.length data in
-    let tensor = L.build_alloca tensor_t "raw_tensor" the_namespace.builder in
+    let tensor = L.build_malloc tensor_t "raw_tensor" the_namespace.builder in
     (* store dtype *)
     let dtypeptr = L.build_struct_gep tensor 0 "dtype" the_namespace.builder in
     ignore(L.build_store dtype dtypeptr the_namespace.builder);
@@ -129,7 +101,7 @@ let translate sstmts =
 
     (* store dims *)
     let size = Array.length dims in
-    let dimsptr = L.build_alloca (L.array_type i8_t size) "dims" the_namespace.builder in
+    let dimsptr = L.build_malloc (L.array_type i8_t size) "dims" the_namespace.builder in
     let dimsptr_as_i8ptr = L.build_bitcast dimsptr i8ptr_t "dims_as_i8ptr" the_namespace.builder in
     let store_dims dim idx = 
       let gep_addr = L.build_gep dimsptr [|L.const_int i8_t 0; L.const_int i8_t idx|] "elmptr" the_namespace.builder in
@@ -139,14 +111,14 @@ let translate sstmts =
 
     (* store data *)
     let size = Array.length data in
-    let dataptr = L.build_alloca (L.array_type ltype size) "data" the_namespace.builder in
+    let dataptr = L.build_malloc (L.array_type ltype size) "data" the_namespace.builder in
     let dataptr_as_i8ptr = L.build_bitcast dataptr i8ptr_t "data_as_i8ptr" the_namespace.builder in
-    let store_data ten idx = 
-      let gep_addr = L.build_gep dataptr [|L.const_int ltype 0; L.const_int ltype idx|] "elmptr" the_namespace.builder in
+    
+    let store_data ten idx =
+      let gep_addr = L.build_gep dataptr [|L.const_int itype 0; L.const_int itype idx|] "elmptr" the_namespace.builder in
       ignore(L.build_store ten gep_addr the_namespace.builder);
     in
     ignore(List.iter2 store_data (Array.to_list data) (List.init size (fun i -> i)));
-    
 
     let dimsptr_of_tensor = L.build_struct_gep tensor 2 "dimsptr" the_namespace.builder in
     ignore(L.build_store dimsptr_as_i8ptr dimsptr_of_tensor the_namespace.builder);
@@ -156,7 +128,7 @@ let translate sstmts =
 
     L.build_bitcast tensor i8ptr_t "tensor" the_namespace.builder
   in
-  
+
   (* add terminal for function definition *)
   let add_terminal builder instr = 
       match L.block_terminator (L.insertion_block builder) with  
@@ -196,7 +168,7 @@ let translate sstmts =
   (* expression translation *)
   let rec genExpr the_namespace se = match se with
       (* (_, SFId(id)) -> what's llvalue of sfid?  *)
-    | (_, SId(id)) -> L.build_load (lookup id the_namespace) id the_namespace.builder
+    (* | (_, SId(id)) -> L.build_load (lookup id the_namespace) id the_namespace.builder *)
     | (_, SBinop(se1, op, se2)) -> 
         let se1_ = genExpr the_namespace se1
         and se2_ = genExpr the_namespace se2 in
@@ -207,20 +179,39 @@ let translate sstmts =
         ) [| se1_ ; se2_ |] "tmpOp" the_namespace.builder
         (* cast_voidpt_to_tensor the_namespace "tmpOp" tmpOp *)
     | (STensorTup(t, n, d), STensor(y)) ->
-        (* (match t with 
-          INT_Tensor -> set_constptr "stensor" (L.const_named_struct tensor_t 
-            (let dims = set_constptr "sdim" (gen_dim i8_t d) the_module i8ptr_t
-            and data = set_constptr "sdata" (gen_array int_t y) the_module i8ptr_t
-            in [|gen_value i8_t 0; gen_value i8_t n; dims; data|])) the_module tensor_pt
-        | FLOAT_Tensor -> set_constptr "stensor" (L.const_named_struct tensor_t 
-            (let dims = set_constptr "sdim" (gen_dim i8_t d) the_module i8ptr_t
-            and data = set_constptr "sdata" (gen_array float_t y) the_module i8ptr_t
-            in [|gen_value i8_t 1; gen_value i8_t n; dims; data|])) the_module tensor_pt
-        )  *)
         (match t with 
-          INT_Tensor -> build_tensor the_namespace int_t (gen_value i8_t 0) (gen_value i8_t n) (gen_dim i8_t d) (gen_array int_t y)
-        | FLOAT_Tensor -> build_tensor the_namespace float_t (gen_value i8_t 1) (gen_value i8_t n) (gen_dim i8_t d) (gen_array float_t y)
+          INT_Tensor -> build_tensor the_namespace int_t int_t (gen_value i8_t 0) (gen_value i8_t n) (gen_dim i8_t d) (gen_array int_t y)
+        | FLOAT_Tensor -> build_tensor the_namespace float_t i64_t (gen_value i8_t 1) (gen_value i8_t n) (gen_dim i8_t d) (gen_array float_t y)
         )
+    | (_, SVtensor(x)) -> let rec gen_vartensor = function
+        Tensor0(x) -> (match x with
+          IntLit(_) -> [|build_tensor the_namespace int_t int_t (gen_value i8_t 0) (gen_value i8_t 0) (gen_dim i8_t [||]) (gen_array int_t [|x|])|]
+        | FloatLit(_) -> [|build_tensor the_namespace float_t i64_t (gen_value i8_t 1) (gen_value i8_t 0) (gen_dim i8_t [||]) (gen_array float_t [|x|])|])
+      | LRTensor(x) -> let y = gen_vartensor(x) in
+                       let dims = gen_dim i8_t [|Array.length(y)|] in
+                       let data =  y in
+                       let ptrx = build_tensor the_namespace i8ptr_t i64_t (gen_value i8_t 3) (gen_value i8_t 1) dims data in
+                       [|ptrx|]
+      | LRTensors(x1, x2) -> let y1 = gen_vartensor(x1) and y2 = gen_vartensor(x2) in
+                             let dims = gen_dim i8_t [|Array.length(y1)+Array.length(y2)|] in
+                             let data = Array.append y1 y2 in
+                             let ptrx = build_tensor the_namespace i8ptr_t i64_t (gen_value i8_t 3) (gen_value i8_t 1) dims data in
+                             [|ptrx|]
+      | NPTensor(x) -> gen_vartensor(x)
+      | NPTensors(x1, x2) -> let y1 = gen_vartensor(x1) and y2 = gen_vartensor(x2) in
+                             Array.append y1 y2
+      in let y = gen_vartensor(x) in y.(0)
+    | (_, SASexpr(x)) -> (match x with 
+        Id(id) -> L.build_load (lookup id the_namespace) id the_namespace.builder
+      | Idind(s, x) -> (match x with
+          (nlist, indlist) -> let rec gen_indlist = function
+            [] -> [||]
+          | (n, d, y)::indlist_ -> let i0 = genExpr the_namespace (STensorTup(INT_Tensor, n, d), STensor(y)) in 
+            let y1 = [|i0|] and y2 = gen_indlist(indlist_) in Array.append y1 y2 in 
+            let dims = gen_dim i8_t [|nlist|] in
+            let data = gen_indlist(indlist) in
+            build_tensor the_namespace i8ptr_t i64_t (gen_value i8_t 3) (gen_value i8_t 1) dims data)
+      )
     | (_, SPrint(se1)) -> let se1_ = genExpr the_namespace se1 in
                           L.build_call print_func [| se1_ |] "" the_namespace.builder
     | (_, SFuncCall(str1, se1)) -> let (the_function, the_builder) = StringHash.find the_namespace.function_table str1 in

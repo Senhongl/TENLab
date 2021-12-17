@@ -30,9 +30,10 @@ type operator_name =
 | MulSymbol
 
 type expr =
-  Id of string
 | FId of string
 | Tensor of tensor
+| VarTs of tensor
+| ASexpr of asexpr
 | Binop of expr * bop * expr
 | Unop of uop * expr
 | Range of expr * expr * expr
@@ -61,6 +62,10 @@ type expr =
 
 | FuncCall of expr * expr list
 
+and asexpr = 
+  Id of string
+| Idind of string * tensor
+
 (* Tensor *)
 and tensor =
   EmptyTensor
@@ -81,12 +86,12 @@ type stmt =
 | ForStmt of string * expr * stmt list
 | WhileStmt of expr * stmt list
 (* Parallel Environment *)
-| PEDecl of expr * stmt list
-| PEInvoke of expr
+| PEDecl of asexpr * stmt list
+| PEInvoke of asexpr
 | POSign of string * string list
 | ParallelOperator of stmt * stmt
 | MapReduce of stmt list * stmt
-| MapFunc of expr * stmt list
+| MapFunc of asexpr * stmt list
 | ReduceFunc of stmt list
 (* Keyword statement *)
 | Return of expr
@@ -114,7 +119,7 @@ let string_of_bop = function
 | And -> "&&"
 | Or -> "||"
 
-
+(* 
 let string_of_uop = function
   Not -> "!"
 | Neg -> "-"
@@ -134,8 +139,10 @@ let rec string_of_tensor = function
 | NPTensors(t1, t2) -> string_of_tensor t1 ^ ", " ^ string_of_tensor t2
 
 
+let rec string_of_asexpr = function
+| Id(id) -> id
+
 let rec string_of_expr = function
-  Id(str1) -> str1
 | FId(str1) -> str1
 | Tensor(t1) -> string_of_tensor t1
 | Binop(e1, bop, e2) -> string_of_expr e1 ^ " " ^ string_of_bop bop ^ " " ^ string_of_expr e2
@@ -188,6 +195,7 @@ let rec string_of_stmt = function
 | Return(e1) -> "return " ^ string_of_expr e1 ^ "\n"
 | Break -> "break\n"
 | Continue -> "continue\n"
-| Exit(e1) -> "exit" ^ string_of_expr e1 ^ "\n"
-
-and string_of_program l = String.concat ";\n" (List.map string_of_stmt l) ^ "\n"
+| Exit(e1) -> "exit" ^ string_of_expr e1 ^ "\n" *)
+(* 
+and string_of_program l = String.concat ";\n" (List.map string_of_stmt l) ^ "\n" *)
+and string_of_program l = "todo\n"
