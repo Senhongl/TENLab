@@ -106,6 +106,12 @@ let rec check_stmt symbol_table function_table = function
                        let e1_ = check_expr local_symbol_table local_function_table e1 in
                        let s1_ = List.map (check_stmt local_symbol_table local_function_table) s1 in
                        SWhileStmt(e1_, s1_)
+| ForStmt(str1, e1, s1) -> let local_symbol_table = StringHash.copy symbol_table in
+                           ignore(StringHash.add local_symbol_table str1 (SVoidTup, SVoidExpr));
+                           let local_function_table = StringHash.copy function_table in
+                           let e1_ = check_expr local_symbol_table local_function_table e1 in
+                           let s1_ = List.map (check_stmt local_symbol_table local_function_table) s1 in
+                           SForStmt(str1, e1_, s1_)
 | FuncDecl(str1, str2, s1) -> let local_symbol_table = StringHash.copy symbol_table in
                               let argc = List.length(str2) in
                               List.iter (fun s -> StringHash.add local_symbol_table s (SVoidTup, SVoidExpr)) str2;

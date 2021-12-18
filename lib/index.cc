@@ -1,4 +1,4 @@
-/*#include "tensor.h"
+#include "tensor.h"
 
 torch::Tensor index_get_t(const torch::Tensor &x_t, 
     const c10::List<c10::optional<torch::Tensor>> &y_t)
@@ -20,4 +20,4 @@ extern "C" void *index_get(void *tena, void *inda)
     }
 
     return (void *)fromTensor(index_get_t(toTensor(tenx), indlist));
-}*/
+}

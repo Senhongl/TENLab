@@ -8,6 +8,6 @@ def foo(a) {
     print(b);
 }
 
-foo(a);
+foo(3);
 print(a);
 print(b);

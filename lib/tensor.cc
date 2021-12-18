@@ -50,6 +50,7 @@ tensor *fromTensor(const torch::Tensor &a_t)
     unsigned int eleBytes = sizeof(int32_t) * torch::numel(a_t);
     a->data = (int32_t *)malloc(eleBytes);
     memcpy(a->data, a_t.data_ptr(), eleBytes);
+    a->rc = 1; // todo: 0 or 1?
 
     return a;
 }
