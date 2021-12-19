@@ -109,26 +109,40 @@ let ps = StringHash.copy s in
 let fs = StringHash.copy f in
 (name, List.map (check_stmt ps fs) statements)
 
-let check_po psymbol_table pfunction_table po =
-let ap x = 
-ignore(List.iter (fun s -> StringHash.add psymbol_table s (SVoidTup, SVoidExpr)) x); x
-in
+let check_po po =
+let psymbol_table = StringHash.create 10 in
+let pfunction_table = StringHash.create 10 in
+ignore(List.iter (fun s -> StringHash.add psymbol_table s (SVoidTup, SVoidExpr)) po.params);
 let app x =
 ignore(List.iter (fun (name,_) -> StringHash.add psymbol_table name (SVoidTup, SVoidExpr)) po.mapfuncs); x
 in
+let oprewrite = function
+  | "__+__" -> "ADD"
+  | "__-__" -> "SUB"
+  | "__*__" -> "MUL"
+in 
 {
-  soperator = po.operator;
-  sparams = ap po.params; 
-  sheadstmt = List.map (check_stmt psymbol_table pfunction_table) po.headstmt;
+  soperator = oprewrite po.operator;
+  sparams = po.params; 
   smapfuncs = List.map (check_mapf psymbol_table pfunction_table) po.mapfuncs;
   sreducefunc = List.map (check_stmt psymbol_table pfunction_table) (app po.reducefunc)
 }
 
-let check_pe (name, pos) = 
-let po_symbol_table = StringHash.create 10 in
-let po_function_table = StringHash.create 10 in
+let fill_pe pe spo =
+match spo.soperator with 
+| "ADD" -> {sadd = SPO(spo);
+            sminus = pe.sminus;
+            smulti = pe.smulti;}
+| "SUB" -> {sadd = pe.sadd;
+            sminus = SPO(spo);
+            smulti = pe.smulti;}
+| "MUL" -> {sadd = pe.sadd;
+            sminus = pe.sminus;
+            smulti = SPO(spo);}
+
+let check_pe (name, pos) =
 ignore(StringSet.add name pe_table);
-(name, List.map (check_po po_symbol_table po_function_table) pos)
+(name, List.fold_left fill_pe {sadd = SDEF; sminus = SDEF; smulti = SDEF;} (List.map check_po pos))
 
 let check (pes,stmts) = 
   (List.map check_pe pes, List.map (check_stmt symbol_table function_table) stmts)

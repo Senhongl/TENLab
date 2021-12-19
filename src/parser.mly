@@ -90,7 +90,7 @@ stmt:
 // TODO: support a, b = 1, 2?
 | IDENTIFIER ASSIGNMENT expr SEP { Assign($1, $3) }
 | USING IDENTIFIER { PEInvoke($2) }
-| END IDENTIFIER { PEEND($2) }
+| END IDENTIFIER { PEEnd($2) }
 | DEFINE IDENTIFIER LEFT_PARENTHESIS params RIGHT_PARENTHESIS func_stmt_body { FuncDecl($2, $4, $6) }
 | IF LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt_body %prec NOELSE { IfStmt($3, $5, [EmptyStmt]) }
 | IF LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt_body ELSE stmt_body { IfStmt($3, $5, $7) }

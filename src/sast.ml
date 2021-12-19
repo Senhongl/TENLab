@@ -58,12 +58,19 @@ type sstmt =
 type spofunc = {
   soperator : string;
   sparams : string list;
-  sheadstmt : sstmt list;
   smapfuncs : (string * sstmt list) list;
   sreducefunc : sstmt list;
 }
 
-type program = (string * spofunc list) list * sstmt list
+type accspofunc = SDEF | SPO of spofunc
+
+type spe = {
+  sadd : accspofunc;
+  sminus : accspofunc;
+  smulti : accspofunc;
+}
+
+type program = (string * spe) list * sstmt list
 
 (* let rec string_of_sexpr = function
   SId(str1) -> str1
