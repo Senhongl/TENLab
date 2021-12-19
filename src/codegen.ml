@@ -423,7 +423,6 @@ let translate (spes,sstmts) =
         let poname = pename ^ pofunc.soperator in
         ignore(List.iter (build_pofunc poname pofunc.sparams) pofunc.smapfuncs);
         ignore(build_reducefunc (poname ^ "reduce") (List.map (fun (name, _) -> name) pofunc.smapfuncs) pofunc.sreducefunc);
-        (* ignore(build_pofunc poname (List.map (fun (name, _) -> name) pofunc.smapfuncs) ("reduce", pofunc.sreducefunc)); *)
         pofp_creator pename pofunc
       in
       let podecl pename pof = 

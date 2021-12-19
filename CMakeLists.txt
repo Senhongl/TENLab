@@ -13,7 +13,7 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
 
 enable_language(ASM)
 
-file(GLOB SOURCES "lib/*.cc")
+file(GLOB SOURCES "lib/*.c*")
 add_library(func OBJECT ${SOURCES})
 target_link_libraries(func "${TORCH_LIBRARIES}")
 set_property(TARGET func PROPERTY CXX_STANDARD 14)

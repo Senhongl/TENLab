@@ -4,7 +4,7 @@ test: all generate.sh test.sh
 	./test.sh ./tests/test-pe.tl
 
 .PHONY: all
-all: tenlab.native pe.o
+all: tenlab.native
 
 tenlab.native:
 	opam config exec -- \
@@ -21,5 +21,5 @@ cleandir :
 	@if [ -d build ]; then make -C build clean; \
 	else echo "build not exist"; fi
 
-pe : pe.c
-	cc -o pe pe.c
+# pe : pe.c
+# 	cc -o pe pe.c
