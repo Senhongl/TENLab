@@ -14,4 +14,6 @@ parallel_define et {
 	}
 }
 
+using et;
+print(1+2);
 

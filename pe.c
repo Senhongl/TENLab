@@ -2,6 +2,7 @@
 #include <unistd.h>
 #include <sys/wait.h>
 #include <sys/mman.h>
+#include <stdlib.h>
 
 typedef void* (*pf)(void*, void*);
 typedef void* (*rd)(void**);

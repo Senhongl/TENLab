@@ -35,8 +35,8 @@ type namespace = {
 
 type po = {
   funcnum : int;
-  mapfuncs : string;
-  refunc : string;
+  mapfuncs : L.llvalue;
+  refunc : L.llvalue;
 }
 
 type actualpo = DEF | PO of po
@@ -117,8 +117,9 @@ let translate (spes,sstmts) =
   and tensor_t = L.named_struct_type context "tensor_t" 
   and int_array_t = L.array_type int_t  
   and float_array_t = L.array_type float_t in
+  let i8ptr_ptr_t = L.pointer_type i8ptr_t in
   let map_func_t = L.function_type i8ptr_t [|i8ptr_t; i8ptr_t|] 
-  and reduce_func_t = L.function_type i8ptr_t [|L.pointer_type i8ptr_t|] in
+  and reduce_func_t = L.function_type i8ptr_t [|i8ptr_ptr_t|] in
   let map_func_ptr_t = L.pointer_type map_func_t in
   let map_func_ptr_ptr_t = L.pointer_type map_func_ptr_t
   and reduce_func_ptr_t = L.pointer_type reduce_func_t in
@@ -208,7 +209,7 @@ let translate (spes,sstmts) =
   L.declare_function "bool_of_zero" bool_of_zero_t the_module in
 
   let pe_calc_t : L.lltype = 
-  L.function_type i8ptr_t [|map_func_ptr_ptr_t; i8_t;  reduce_func_ptr_t; i8ptr_t; i8ptr_t|] in
+  L.function_type i8ptr_t [|map_func_ptr_ptr_t; int_t;  reduce_func_ptr_t; i8ptr_t; i8ptr_t|] in
   let pe_calc : L.llvalue =
   L.declare_function "pe_calc" pe_calc_t the_module in
  
@@ -220,6 +221,17 @@ let translate (spes,sstmts) =
                                      ignore(StringHash.add the_namespace.symbol_table id init);
                                      init in
 
+  let pe_add the_namespace expr1 expr2 = 
+  let pe = the_namespace.env in
+  let builder = the_namespace.builder in
+  let pef = StringHash.find global_pe_table pe in
+  match pef.add with
+  | DEF -> L.build_call add_func [| expr1 ; expr2 |]
+  | PO(po) -> 
+  let newpr = L.build_load po.refunc "newpr" builder in
+  let newmp = L.build_struct_gep po.mapfuncs 0 "newmp" builder in
+  L.build_call pe_calc [| newmp; (L.const_int int_t po.funcnum); newpr ;expr1 ; expr2 |]
+  in
   (* expression translation *)
   let rec genExpr the_namespace se = match se with
       (* (_, SFId(id)) -> what's llvalue of sfid?  *)
@@ -228,10 +240,12 @@ let translate (spes,sstmts) =
         let se1_ = genExpr the_namespace se1
         and se2_ = genExpr the_namespace se2 in
         (match op with
-          Add -> L.build_call add_func
-        | Mul -> L.build_call mult_func
-        | Eq  -> L.build_call equal_func 
-        ) [| se1_ ; se2_ |] "tmpOp" the_namespace.builder
+          Add -> (match the_namespace.env with
+          | "default" -> L.build_call add_func [| se1_ ; se2_ |]
+          | _ -> pe_add the_namespace se1_ se2_)
+        | Mul -> L.build_call mult_func [| se1_ ; se2_ |]
+        | Eq  -> L.build_call equal_func [| se1_ ; se2_ |]
+        )  "tmpOp" the_namespace.builder
         (* cast_voidpt_to_tensor the_namespace "tmpOp" tmpOp *)
     | (STensorTup(t, n, d), STensor(y)) ->
         (* (match t with 
@@ -335,6 +349,8 @@ let translate (spes,sstmts) =
                               let builder = L.builder_at_end context merge_bb in
                               {symbol_table = the_namespace.symbol_table; function_table = the_namespace.function_table; func = the_namespace.func; builder = builder; global = the_namespace.global; env = the_namespace.env}
     | SReturn(se1) -> ignore(L.build_ret (genExpr the_namespace se1) the_namespace.builder); the_namespace
+    | SPEInvoke(str1) -> {symbol_table = the_namespace.symbol_table; function_table = the_namespace.function_table; func = the_namespace.func; builder = the_namespace.builder; global = the_namespace.global; env = str1}
+    | SPEEnd(str1) -> {symbol_table = the_namespace.symbol_table; function_table = the_namespace.function_table; func = the_namespace.func; builder = the_namespace.builder; global = the_namespace.global; env = "default"}
   
   and pedecl main_namespace (pename, pebody) =
       let map_value_helper bigname po_map_array idx (name, _) = 
@@ -350,17 +366,17 @@ let translate (spes,sstmts) =
         let funcn = List.length(pofunc.smapfuncs) in 
         let po_map_id = poname ^ "maps" in
         let po_map_array = L.define_global po_map_id (L.const_null (L.array_type map_func_ptr_t funcn)) the_module in
-        ignore(StringHash.add main_namespace.symbol_table po_map_id po_map_array);
+        (* ignore(StringHash.add main_namespace.symbol_table po_map_id po_map_array); *)
         ignore(List.fold_left (map_value_helper poname po_map_array) 0 pofunc.smapfuncs);
         let po_reduce_id = poname ^ "reduce" in 
         let po_reduce = L.define_global po_reduce_id (L.const_pointer_null reduce_func_ptr_t) the_module in
-        ignore(StringHash.add main_namespace.symbol_table po_reduce_id po_reduce);
+        (* ignore(StringHash.add main_namespace.symbol_table po_reduce_id po_reduce); *)
         let ftmp = match (L.lookup_function (poname ^ "reduce") the_module) with Some z-> z in
         ignore(L.build_store ftmp po_reduce main_namespace.builder);
         PO({
           funcnum = funcn;
-          mapfuncs = po_map_id;
-          refunc = po_reduce_id;
+          mapfuncs = po_map_array;
+          refunc = po_reduce;
         })
       in
       let build_pofunc bigname paras (name, stmts) =
@@ -375,17 +391,39 @@ let translate (spes,sstmts) =
         let local_namespace = List.fold_left stmt local_namespace stmts in
         ignore(add_terminal the_builder build_return); 
       in 
-      let build_reducefunc =
-        let ftype : L.lltype = 
-          L.function_type i8ptr_t (Array.make argc i8ptr_t) in
-        let the_function = L.define_function fname ftype the_module in
-        let builder = L.builder_at_end context (L.entry_block the_function) in
-        (the_function, builder)
+      let reduce_value_helper local_symbol_table the_builder reduce_array idx name = 
+        let alloca = L.build_alloca i8ptr_t name the_builder in
+        let newa = L.build_load reduce_array "newa" the_builder in
+        let tmp = L.build_gep newa [|(L.const_int int_t idx)|] "tmp" the_builder in
+        let newv = L.build_load tmp "newv" the_builder in
+        ignore(L.build_store newv alloca the_builder);
+        ignore(StringHash.add local_symbol_table name alloca);
+        idx+1
+      in
+
+      let build_reducefunc name vars stmts =
+        let the_function = L.define_function name reduce_func_t the_module in
+        let the_builder = L.builder_at_end context (L.entry_block the_function) in
+        let local_symbol_table = StringHash.create 10 in
+        let local_function_table = StringHash.create 10 in
+
+        let argval = List.hd(Array.to_list (L.params the_function)) in
+        ignore(L.set_value_name "result" argval);
+        let alloca = L.build_alloca i8ptr_ptr_t "result" the_builder in
+        ignore(L.build_store argval alloca the_builder);
+
+        ignore(List.fold_left (reduce_value_helper local_symbol_table the_builder alloca) 0 vars);
+
+        let build_return b = L.build_ret (L.const_pointer_null i8ptr_t) b in
+        let local_namespace = {symbol_table = local_symbol_table; function_table = local_function_table; func = the_function; builder = the_builder; global = false; env = "default"} in
+        let local_namespace = List.fold_left stmt local_namespace stmts in
+        ignore(add_terminal the_builder build_return);
       in
       let pogenerate pename pofunc =
         let poname = pename ^ pofunc.soperator in
         ignore(List.iter (build_pofunc poname pofunc.sparams) pofunc.smapfuncs);
-        ignore(build_pofunc poname (List.map (fun (name, _) -> name) pofunc.smapfuncs) ("reduce", pofunc.sreducefunc));
+        ignore(build_reducefunc (poname ^ "reduce") (List.map (fun (name, _) -> name) pofunc.smapfuncs) pofunc.sreducefunc);
+        (* ignore(build_pofunc poname (List.map (fun (name, _) -> name) pofunc.smapfuncs) ("reduce", pofunc.sreducefunc)); *)
         pofp_creator pename pofunc
       in
       let podecl pename pof = 
