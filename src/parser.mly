@@ -88,7 +88,7 @@ loop_stmts:
 stmt:
 | expr SEP { Expr($1) }
 // TODO: support a, b = 1, 2?
-| IDENTIFIER ASSIGNMENT expr SEP { Assign($1, $3) }
+| asexpr ASSIGNMENT expr SEP { Assign($1, $3) }
 | PARALLEL_DEFINE IDENTIFIER pe_body { PEDecl(Id($2), $3) }
 | USING IDENTIFIER { PEInvoke(Id($2)) }
 | DEFINE IDENTIFIER LEFT_PARENTHESIS params RIGHT_PARENTHESIS func_stmt_body { FuncDecl($2, $4, $6) }

@@ -79,7 +79,7 @@ and tensor =
 type stmt =
   EmptyStmt
 | Expr of expr
-| Assign of string * expr
+| Assign of asexpr * expr
 (* | FuncSign of string * string list *)
 | FuncDecl of string * string list * stmt list
 | IfStmt of expr * stmt list * stmt list

@@ -48,7 +48,7 @@ and sx =
 type sstmt =
   SEmptyStmt
 | SExpr of sexpr
-| SAssign of string * sexpr
+| SAssign of sasexpr * sexpr
 (* | SFuncSign of string * string list *)
 | SFuncDecl of string * string list * sstmt list
 | SIfStmt of sexpr * sstmt list * sstmt list

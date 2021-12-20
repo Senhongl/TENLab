@@ -93,8 +93,16 @@ let rec check_expr symbol_table function_table = function
 let rec check_stmt symbol_table function_table = function
   EmptyStmt -> SEmptyStmt
 | Expr(e) -> SExpr(check_expr symbol_table function_table e)
-| Assign(str1, e2) -> let sexpr = check_expr symbol_table function_table e2 in
-                      ignore(StringHash.add symbol_table str1 sexpr); SAssign(str1, sexpr)
+| Assign(s, e2) -> 
+                      let sexpr = check_expr symbol_table function_table e2 in
+      (match s with
+            Id(str1) ->
+                      ignore(StringHash.add symbol_table str1 sexpr); SAssign(Id(str1), sexpr)
+          | Idind(id, x) -> 
+                      if StringHash.mem function_table id then StringHash.remove function_table id;
+                      if StringHash.mem symbol_table id then SAssign(Idind(id, check_intv(x)), sexpr)
+                      else raise (Failure( "variable " ^ id ^ " not defined"))
+      )
 | IfStmt(e1, s1, s2) -> let local_symbol_table = StringHash.copy symbol_table in
                         let local_function_table = StringHash.copy function_table in
                         let e1_ = check_expr local_symbol_table local_function_table e1 in (* TODO: check if boolean expression *)

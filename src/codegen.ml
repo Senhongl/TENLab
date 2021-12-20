@@ -173,6 +173,10 @@ let translate sstmts =
   L.function_type i8ptr_t [|i8ptr_t; i8ptr_t|] in
   let index_get : L.llvalue =
   L.declare_function "index_get" index_get_t the_module in
+  let index_put_t : L.lltype =
+  L.function_type void_t [|i8ptr_t; i8ptr_t; i8ptr_t|] in
+  let index_put : L.llvalue =
+  L.declare_function "index_put" index_put_t the_module in
   let increase_rc_t : L.lltype =
   L.function_type void_t [| i8ptr_t |] in
   let increase_rc: L.llvalue =
@@ -262,13 +266,30 @@ let translate sstmts =
   let rec stmt the_namespace = function
       SEmptyStmt -> the_namespace
     | SExpr(se) -> ignore(genExpr the_namespace se); the_namespace 
-    | SAssign(id, se1) -> let rhs = genExpr the_namespace se1 in
+    | SAssign(s, se1) -> 
+            (match s with 
+              Id(id) ->
+                          let rhs = genExpr the_namespace se1 in
                           let lhs = lookup id the_namespace in
                           let lhsptr = L.build_load lhs "lhsptr" the_namespace.builder in
                           ignore(L.build_call increase_rc [| rhs |] "" the_namespace.builder);
                           ignore(L.build_call decrease_rc [| lhsptr |] "" the_namespace.builder);
                           ignore(L.build_store rhs lhs the_namespace.builder);
                           the_namespace
+            | Idind(s, x) ->
+                          let rhs = genExpr the_namespace se1 in
+                  (match x with
+                          (nlist, indlist) -> let rec gen_indlist = function
+                            [] -> [||]
+                          | (n, d, y)::indlist_ -> let i0 = genExpr the_namespace (STensorTup(INT_Tensor, n, d), STensor(y)) in 
+                            let y1 = [|i0|] and y2 = gen_indlist(indlist_) in Array.append y1 y2 in 
+                            let dims = gen_dim i8_t [|nlist|] in
+                            let data = gen_indlist(indlist) in
+                            let xptr = build_tensor the_namespace i8ptr_t i64_t (gen_value i8_t 3) (gen_value i8_t 1) dims data in
+                            let sptr = L.build_load (lookup s the_namespace) s the_namespace.builder in
+                            L.build_call index_put [|sptr; xptr; rhs|] "" the_namespace.builder
+                  ); the_namespace
+            )
     | SFuncDecl(str1, str2, ss1) -> let argc = List.length(str2) in
                              let (the_function, the_builder) = build_fn str1 argc in
                              ignore(StringHash.add the_namespace.function_table str1 (the_function, the_builder));

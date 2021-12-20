@@ -20,6 +20,16 @@ int8_t fromType(const torch::Dtype &a_type)
     }
 }
 
+int8_t typeSize(int8_t type)
+{
+    switch (type) {
+        case 0: return sizeof(int);
+        case 1: return sizeof(double);
+
+        default: check(0, "Invalid type");
+    }
+}
+
 torch::Tensor toTensor(const tensor * const a)
 {
     int64_t *dim_tmp;
@@ -47,8 +57,8 @@ tensor *fromTensor(const torch::Tensor &a_t)
     for (int i = 0; i < a->ndim; i++)
         a->dims[i] = (int8_t)a_t.size(i);
 
-    unsigned int eleBytes = sizeof(int32_t) * torch::numel(a_t);
-    a->data = (int32_t *)malloc(eleBytes);
+    unsigned int eleBytes = typeSize(a->type) * torch::numel(a_t);
+    a->data = malloc(eleBytes);
     memcpy(a->data, a_t.data_ptr(), eleBytes);
     a->rc = 1; // todo: 0 or 1?
 
