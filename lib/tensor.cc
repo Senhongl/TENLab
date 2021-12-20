@@ -68,5 +68,8 @@ tensor *fromTensor(const torch::Tensor &a_t)
 extern "C" int len(void *a)
 {
     tensor *x = (tensor *)a;
-    return toTensor(x).size(0);
+    if (x->type != 3)
+        return toTensor(x).size(0);
+    else
+        return x->dims[0];
 }

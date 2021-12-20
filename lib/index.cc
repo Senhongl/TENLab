@@ -62,8 +62,26 @@ extern "C" void *index_get(void *tena, void *inda)
 
 extern "C" void *index_get_int(void *tena, int inda)
 {
-    tensor *tenx = (tensor *)tena;
-    return (void *)fromTensor(toTensor(tenx).index({inda}));
+    tensor *indx = (tensor *)malloc(sizeof(tensor));
+    indx->type = 0;
+    indx->ndim = 1;
+    indx->dims = (int8_t *)malloc(sizeof(int8_t));
+    indx->dims[0] = 1;
+
+    indx->data = (void *) malloc(sizeof(int));
+    memcpy(indx->data, &inda, sizeof(int));
+    
+    tensor *indx2 = (tensor *)malloc(sizeof(tensor));
+    tensor **tmp = (tensor **)malloc(sizeof(tensor *));
+    tmp[0] = indx;
+    indx2->type = 3;
+    indx2->ndim = 1;
+    indx2->dims = (int8_t *)malloc(sizeof(int8_t));
+    indx2->dims[0] = 1;
+
+    indx2->data = (void *)tmp;
+    
+    return index_get(tena, (void *)indx2);
 }
 
 void index_put_t(torch::Tensor x_t, 
