@@ -13,7 +13,7 @@ extern "C" void *pe_calc(pf* mapfunctions, int num, rd reduce, void* a, void* b)
 {
 	int i;
 	future<void*> pres[num];
-	void *res[num] = {0};
+	void *res[num];
 	
 	for (i = 0;i < num;i++) {
 		pres[i] = async(((*mapfunctions[i])), a, b);

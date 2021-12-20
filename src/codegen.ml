@@ -252,6 +252,10 @@ let translate (spes,sstmts) =
     L.function_type i8ptr_t [| i8ptr_t |] in
   let logicalnot_func : L.llvalue = 
     L.declare_function "logicalnot" logicalnot_t the_module in
+  let len_t : L.lltype = 
+    L.function_type int_t [| i8ptr_t |] in
+  let len : L.llvalue =
+    L.declare_function "len" len_t the_module in
   let bool_of_zero_t : L.lltype =
     L.function_type bool_t [| i8ptr_t |] in
   let bool_of_zero : L.llvalue = 
@@ -266,6 +270,10 @@ let translate (spes,sstmts) =
   L.function_type i8ptr_t [|i8ptr_t; i8ptr_t|] in
   let index_get : L.llvalue =
   L.declare_function "index_get" index_get_t the_module in
+  let index_get_int_t : L.lltype =
+  L.function_type i8ptr_t [|i8ptr_t; int_t|] in
+  let index_get_int : L.llvalue =
+  L.declare_function "index_get_int" index_get_int_t the_module in
   let index_put_t : L.lltype =
   L.function_type void_t [|i8ptr_t; i8ptr_t; i8ptr_t|] in
   let index_put : L.llvalue =
@@ -529,7 +537,7 @@ let translate (spes,sstmts) =
     | SForStmt(str1, se1, ss1) -> let idxptr = L.build_alloca int_t "idxptr" the_namespace.builder in
                                   ignore(L.build_store (L.const_int int_t (0)) idxptr the_namespace.builder);
                                   let tensor = genExpr the_namespace se1 in
-                                  let size = get_tensor_length tensor the_namespace in
+                                  let size = L.build_call len [| tensor |] "length" the_namespace.builder in
                                   (* ignore(L.build_call print_int [| size |] "" the_namespace.builder); *)
                                   let pred_bb = L.append_block context "for" the_namespace.func in
                                   ignore(L.build_br pred_bb the_namespace.builder);
@@ -544,17 +552,22 @@ let translate (spes,sstmts) =
                                   let new_indicator = L.build_add indicator (L.const_int int_t 1) "new_idx"  pred_builder in
                                   ignore(L.build_store new_indicator idxptr pred_builder);
                                   (* ignore(L.build_call print_int [| indicator |] "" pred_builder); *)
-                                  
                                   let cond = (L.build_icmp L.Icmp.Sgt) new_indicator size "condition" pred_builder in
 
                                   let body_bb = L.append_block context "for_body" the_namespace.func in
-                                  let local_builder = L.builder_at_end context body_bb in
+                                  let body_builder = L.builder_at_end context body_bb in
                                   let local_namespace = {symbol_table = the_namespace.symbol_table; 
                                                         function_table = the_namespace.function_table;
                                                         func = the_namespace.func; 
-                                                        builder = local_builder;
+                                                        builder = body_builder;
                                                         global = the_namespace.global;
                                                         env = the_namespace.env} in
+                                  (* ignore(L.build_call print_int [| L.const_int int_t 3 |] "" pred_builder); *)
+                                  (* let indicator_as_tensor = build_tensor local_namespace int_t int_t (gen_value i8_t 0) (gen_value i8_t 1) [| gen_value i8_t 1 |] [| indicator |] in *)
+                                  let str1ptr = lookup str1 local_namespace in
+                                  let indicator_as_tensor = L.build_call index_get_int [|tensor; indicator|] "indicator_as_tensor" body_builder in
+                                  (* ignore(L.build_call print_int [| L.const_int int_t 4 |] "" pred_builder); *)
+                                  ignore(L.build_store indicator_as_tensor str1ptr body_builder);
                                   let local_namespace = List.fold_left stmt local_namespace ss1 in
                                   ignore(add_terminal local_namespace.builder (L.build_br pred_bb));
 

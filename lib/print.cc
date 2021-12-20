@@ -27,3 +27,8 @@ extern "C" void print(void *a)
     else
         std::cout << toTensor(x) << std::endl;
 }
+
+extern "C" void print_int(int a)
+{
+    printf("%d\n", a);
+}

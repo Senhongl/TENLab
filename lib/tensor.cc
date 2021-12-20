@@ -64,3 +64,9 @@ tensor *fromTensor(const torch::Tensor &a_t)
 
     return a;
 }
+
+extern "C" int len(void *a)
+{
+    tensor *x = (tensor *)a;
+    return toTensor(x).size(0);
+}

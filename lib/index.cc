@@ -60,6 +60,12 @@ extern "C" void *index_get(void *tena, void *inda)
     return (void *)fromTensor(index_get_t(toTensor(tenx), indlist));
 }
 
+extern "C" void *index_get_int(void *tena, int inda)
+{
+    tensor *tenx = (tensor *)tena;
+    return (void *)fromTensor(toTensor(tenx).index({inda}));
+}
+
 void index_put_t(torch::Tensor x_t, 
     const c10::List<c10::optional<torch::Tensor>> &y_t, 
     torch::Tensor z_t)
