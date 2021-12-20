@@ -19,7 +19,7 @@
 %token ANY ALL SUM ONES ZEROS LEN INT_OF FLOAT_OF FLOOR CEIL ROUND ABS LOG INVERSE SOLVE SVD EIG EIGV PRINT SHAPE CAT
 
 // TODO: string or char?
-%token IF ELIF ELSE FOR WHILE IN CONTINUE BREAK RETURN EXIT DEFINE INT FLOAT STRING VAR PARALLEL_DEFINE OVERLOAD MAP REDUCE USING RETURN
+%token IF ELIF ELSE FOR WHILE IN CONTINUE BREAK RETURN EXIT DEFINE INT FLOAT STRING VAR PARALLEL_DEFINE OVERLOAD MAP REDUCE USING RETURN END
 %token <string> OPERATOR_INDICATOR
 %token <int> INT_LITERAL
 %token <string> STRING_LITERAL
@@ -48,12 +48,12 @@
 %nonassoc LEFT_PARENTHESIS 
 
 %start main
-%type <Ast.stmt list> main
+%type <Ast.program> main
 
 %%
 
 main:
-  normal_stmts EOF { $1 }
+  pes normal_stmts EOF { ($1, $2) }
 
 
 /***************************************************************************************
@@ -89,8 +89,8 @@ stmt:
 | expr SEP { Expr($1) }
 // TODO: support a, b = 1, 2?
 | asexpr ASSIGNMENT expr SEP { Assign($1, $3) }
-| PARALLEL_DEFINE IDENTIFIER pe_body { PEDecl(Id($2), $3) }
-| USING IDENTIFIER { PEInvoke(Id($2)) }
+| USING IDENTIFIER SEP { PEInvoke($2) }
+| END IDENTIFIER SEP { PEEnd($2) }
 | DEFINE IDENTIFIER LEFT_PARENTHESIS params RIGHT_PARENTHESIS func_stmt_body { FuncDecl($2, $4, $6) }
 | IF LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt_body %prec NOELSE { IfStmt($3, $5, [EmptyStmt]) }
 | IF LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt_body ELSE stmt_body { IfStmt($3, $5, $7) }
@@ -156,28 +156,30 @@ param_list:
                     Parallel Environment
  ***************************************************************************************/
 
-pe_body: LEFT_CURLY_BRACKET po_defs RIGHT_CURLY_BRACKET { $2 }
+pes:
+| { [] }
+| pe pes { $1::$2 }
 
-// TODO: how to add operator indicator to the symbol table?
-po_def_head: OVERLOAD OPERATOR_INDICATOR LEFT_PARENTHESIS params RIGHT_PARENTHESIS { POSign($2, $4) } // PO:paralleled operator
+pe: PARALLEL_DEFINE IDENTIFIER LEFT_CURLY_BRACKET po_list RIGHT_CURLY_BRACKET { ($2, $4) }
 
-po_defs:
-| po_def { [$1] }
-| po_def po_defs { $1 :: $2 }
+po_list:
+| po { [$1] }
+| po po_list { $1 :: $2 }
 
-po_def: po_def_head po_def_body { ParallelOperator($1, $2) }
-
-po_def_body: LEFT_CURLY_BRACKET mr_funcs RIGHT_CURLY_BRACKET { $2 }
-
-mr_funcs: map_funcs reduce_func { MapReduce($1, $2) }
+po: OVERLOAD OPERATOR_INDICATOR LEFT_PARENTHESIS params RIGHT_PARENTHESIS LEFT_CURLY_BRACKET normal_stmts map_funcs reduce_func RIGHT_CURLY_BRACKET
+{ {
+  operator = $2;
+  params = $4;
+  headstmt = $7;
+  mapfuncs = $8;
+  reducefunc = $9;
+} }
 
 map_funcs:
-| map_func { [$1] }
-| map_func map_funcs { $1 :: $2 }
+| MAP IDENTIFIER func_stmt_body { [($2, $3)] }
+| MAP IDENTIFIER func_stmt_body map_funcs { ($2, $3) :: $4 }
 
-map_func: MAP IDENTIFIER LEFT_CURLY_BRACKET normal_stmts RIGHT_CURLY_BRACKET { MapFunc(Id($2), $4) }
-
-reduce_func: REDUCE LEFT_CURLY_BRACKET normal_stmts RIGHT_CURLY_BRACKET { ReduceFunc($3) }
+reduce_func: REDUCE func_stmt_body { $2 }
 
 /***************************************************************************************
         All possible expressions, including binary expression and unary expression

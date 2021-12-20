@@ -55,10 +55,29 @@ type sstmt =
 | SWhileStmt of sexpr * sstmt list
 | SForStmt of string * sexpr * sstmt list
 (* Keyword statement *)
+| SPEInvoke of string
+| SPEEnd of string
 | SReturn of sexpr
 | SBreak
 | SContinue
 | SExit of sexpr
+
+type spofunc = {
+  soperator : string;
+  sparams : string list;
+  smapfuncs : (string * sstmt list) list;
+  sreducefunc : sstmt list;
+}
+
+type accspofunc = SDEF | SPO of spofunc
+
+type spe = {
+  sadd : accspofunc;
+  sminus : accspofunc;
+  smulti : accspofunc;
+}
+
+type program = (string * spe) list * sstmt list
 
 (* let rec string_of_sexpr = function
   SId(str1) -> str1
@@ -99,4 +118,4 @@ let rec string_of_sstmt = function
 | SExit(se1) -> "exit" ^ string_of_sexpr se1 ^ "\n"
 
 and string_of_sprogram l = String.concat "" (List.map string_of_sstmt l) ^ "\n" *)
-let string_of_sprogram l = "TODO!"
+let string_of_sprogram _ = "TODO!"

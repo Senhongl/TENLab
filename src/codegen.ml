@@ -27,7 +27,23 @@ type namespace = {
     function_table: (L.llvalue * L.llbuilder) StringHash.t;
     func: L.llvalue;
     builder: L.llbuilder;
-    global: bool
+    global: bool;
+    env : string;
+}
+
+type po = {
+  funcnum : int;
+  mapfuncs : L.llvalue;
+  refunc : L.llvalue;
+}
+
+type actualpo = DEF | PO of po
+
+
+type pe = {
+  add : actualpo;
+  minus : actualpo;
+  multi : actualpo;
 }
 
 exception E of string (* debug information *)
@@ -54,9 +70,10 @@ let gen_dim ltype arr =
 
 let gen_value ltype value = L.const_int ltype value
 
-let translate sstmts =
+let translate (spes,sstmts) =
   let global_symbol_table = StringHash.create 10 in
   let global_function_table = StringHash.create 10 in
+  let global_pe_table = StringHash.create 10 in
 
   let context = L.global_context() in
 
@@ -72,6 +89,12 @@ let translate sstmts =
   and tensor_t = L.named_struct_type context "tensor_t" 
   and int_array_t = L.array_type int_t  
   and float_array_t = L.array_type float_t in
+  let i8ptr_ptr_t = L.pointer_type i8ptr_t in
+  let map_func_t = L.function_type i8ptr_t [|i8ptr_t; i8ptr_t|] 
+  and reduce_func_t = L.function_type i8ptr_t [|i8ptr_ptr_t|] in
+  let map_func_ptr_t = L.pointer_type map_func_t in
+  let map_func_ptr_ptr_t = L.pointer_type map_func_ptr_t
+  and reduce_func_ptr_t = L.pointer_type reduce_func_t in
         L.struct_set_body tensor_t [| i8_t; i8_t; i8ptr_t; i8ptr_t; i8_t |] false;
 
   let tensor_pt = L.pointer_type  tensor_t in
@@ -150,25 +173,95 @@ let translate sstmts =
 
   (* built-in function *)
   let add_t : L.lltype = 
-  L.function_type i8ptr_t [| i8ptr_t; i8ptr_t |] in
+    L.function_type i8ptr_t [| i8ptr_t; i8ptr_t |] in
   let add_func : L.llvalue = 
-  L.declare_function "add" add_t the_module in
+    L.declare_function "add" add_t the_module in
+  let subtract_t : L.lltype = 
+    L.function_type i8ptr_t [| i8ptr_t; i8ptr_t |] in
+  let subtract_func : L.llvalue = 
+    L.declare_function "subtract" subtract_t the_module in
   let mult_t : L.lltype = 
-  L.function_type i8ptr_t [| i8ptr_t; i8ptr_t |] in
+    L.function_type i8ptr_t [| i8ptr_t; i8ptr_t |] in
   let mult_func : L.llvalue = 
-  L.declare_function "mult" mult_t the_module in
+    L.declare_function "mult" mult_t the_module in
+  let dotmul_t : L.lltype = 
+    L.function_type i8ptr_t [| i8ptr_t; i8ptr_t |] in
+  let dotmul_func : L.llvalue = 
+    L.declare_function "dotmul" dotmul_t the_module in
+  let divide_t : L.lltype = 
+    L.function_type i8ptr_t [| i8ptr_t; i8ptr_t |] in
+  let divide_func : L.llvalue = 
+    L.declare_function "divide" divide_t the_module in
+  let floordivide_t : L.lltype = 
+    L.function_type i8ptr_t [| i8ptr_t; i8ptr_t |] in
+  let floordivide_func : L.llvalue = 
+    L.declare_function "floordivide" floordivide_t the_module in
+  let matpow_t : L.lltype = 
+    L.function_type i8ptr_t [| i8ptr_t; i8ptr_t |] in
+  let matpow_func : L.llvalue = 
+    L.declare_function "matpow" matpow_t the_module in
+  let dotpow_t : L.lltype = 
+    L.function_type i8ptr_t [| i8ptr_t; i8ptr_t |] in
+  let dotpow_func : L.llvalue = 
+    L.declare_function "dotpow" dotpow_t the_module in
+  let mod_t : L.lltype = 
+    L.function_type i8ptr_t [| i8ptr_t; i8ptr_t |] in
+  let mod_func : L.llvalue = 
+    L.declare_function "mod" mod_t the_module in
+  let transpose_t : L.lltype = 
+    L.function_type i8ptr_t [| i8ptr_t |] in
+  let transpose_func : L.llvalue = 
+    L.declare_function "transpose" transpose_t the_module in
   let equal_t : L.lltype = 
     L.function_type i8ptr_t [| i8ptr_t; i8ptr_t |] in
   let equal_func : L.llvalue = 
     L.declare_function "equal" equal_t the_module in
+  let notequal_t : L.lltype = 
+    L.function_type i8ptr_t [| i8ptr_t; i8ptr_t |] in
+  let notequal_func : L.llvalue = 
+    L.declare_function "notequal" notequal_t the_module in
+  let greater_t : L.lltype = 
+    L.function_type i8ptr_t [| i8ptr_t; i8ptr_t |] in
+  let greater_func : L.llvalue = 
+    L.declare_function "greater" greater_t the_module in
+  let greaterequal_t : L.lltype = 
+    L.function_type i8ptr_t [| i8ptr_t; i8ptr_t |] in
+  let greaterequal_func : L.llvalue = 
+    L.declare_function "greaterequal" greaterequal_t the_module in
+  let less_t : L.lltype = 
+    L.function_type i8ptr_t [| i8ptr_t; i8ptr_t |] in
+  let less_func : L.llvalue = 
+    L.declare_function "less" less_t the_module in
+  let lessequal_t : L.lltype = 
+    L.function_type i8ptr_t [| i8ptr_t; i8ptr_t |] in
+  let lessequal_func : L.llvalue = 
+    L.declare_function "lessequal" lessequal_t the_module in
   let print_t : L.lltype = 
-  L.function_type void_t [| i8ptr_t |] in
+    L.function_type void_t [| i8ptr_t |] in
   let print_func : L.llvalue = 
-  L.declare_function "print" print_t the_module in
+    L.declare_function "print" print_t the_module in
+  let logicaland_t : L.lltype = 
+    L.function_type i8ptr_t [| i8ptr_t; i8ptr_t |] in
+  let logicaland_func : L.llvalue = 
+    L.declare_function "logicaland" logicaland_t the_module in
+  let logicalor_t : L.lltype = 
+    L.function_type i8ptr_t [| i8ptr_t; i8ptr_t |] in
+  let logicalor_func : L.llvalue = 
+    L.declare_function "logicalor" logicalor_t the_module in
+  let logicalnot_t : L.lltype = 
+    L.function_type i8ptr_t [| i8ptr_t |] in
+  let logicalnot_func : L.llvalue = 
+    L.declare_function "logicalnot" logicalnot_t the_module in
   let bool_of_zero_t : L.lltype =
-  L.function_type bool_t [| i8ptr_t |] in
+    L.function_type bool_t [| i8ptr_t |] in
   let bool_of_zero : L.llvalue = 
-  L.declare_function "bool_of_zero" bool_of_zero_t the_module in
+    L.declare_function "bool_of_zero" bool_of_zero_t the_module in
+
+  let pe_calc_t : L.lltype = 
+  L.function_type i8ptr_t [|map_func_ptr_ptr_t; int_t;  reduce_func_ptr_t; i8ptr_t; i8ptr_t|] in
+  let pe_calc : L.llvalue =
+  L.declare_function "pe_calc" pe_calc_t the_module in
+ 
   let index_get_t : L.lltype =
   L.function_type i8ptr_t [|i8ptr_t; i8ptr_t|] in
   let index_get : L.llvalue =
@@ -200,17 +293,76 @@ let translate sstmts =
                                      ignore(StringHash.add the_namespace.symbol_table id init);
                                      init in
 
+  let pe_add the_namespace expr1 expr2 = 
+    let pe = the_namespace.env in
+    let builder = the_namespace.builder in
+    let pef = StringHash.find global_pe_table pe in
+      match pef.add with
+      | DEF -> L.build_call add_func [| expr1 ; expr2 |]
+      | PO(po) -> 
+        let newpr = L.build_load po.refunc "newpr" builder in
+        let newmp = L.build_struct_gep po.mapfuncs 0 "newmp" builder in
+        L.build_call pe_calc [| newmp; (L.const_int int_t po.funcnum); newpr ;expr1 ; expr2 |]
+  in
+  let pe_sub the_namespace expr1 expr2 = 
+    let pe = the_namespace.env in
+    let builder = the_namespace.builder in
+    let pef = StringHash.find global_pe_table pe in
+      match pef.minus with
+      | DEF -> L.build_call subtract_func [| expr1 ; expr2 |]
+      | PO(po) -> 
+        let newpr = L.build_load po.refunc "newpr" builder in
+        let newmp = L.build_struct_gep po.mapfuncs 0 "newmp" builder in
+        L.build_call pe_calc [| newmp; (L.const_int int_t po.funcnum); newpr ;expr1 ; expr2 |]
+  in
+  let pe_mul the_namespace expr1 expr2 = 
+    let pe = the_namespace.env in
+    let builder = the_namespace.builder in
+    let pef = StringHash.find global_pe_table pe in
+      match pef.multi with
+      | DEF -> L.build_call mult_func [| expr1 ; expr2 |]
+      | PO(po) -> 
+        let newpr = L.build_load po.refunc "newpr" builder in
+        let newmp = L.build_struct_gep po.mapfuncs 0 "newmp" builder in
+        L.build_call pe_calc [| newmp; (L.const_int int_t po.funcnum); newpr ;expr1 ; expr2 |]
+  in
   (* expression translation *)
   let rec genExpr the_namespace se = match se with
     | (_, SBinop(se1, op, se2)) -> 
         let se1_ = genExpr the_namespace se1
         and se2_ = genExpr the_namespace se2 in
         (match op with
-          Add -> L.build_call add_func
-        | Mul -> L.build_call mult_func
-        | Eq  -> L.build_call equal_func 
-        ) [| se1_ ; se2_ |] "tmpOp" the_namespace.builder
+          Add -> (match the_namespace.env with
+          | "default" -> L.build_call add_func [| se1_ ; se2_ |]
+          | _ -> pe_add the_namespace se1_ se2_)
+        | Sub -> (match the_namespace.env with
+          | "default" -> L.build_call subtract_func [| se1_ ; se2_ |]
+          | _ -> pe_sub the_namespace se1_ se2_)
+        | Mul -> (match the_namespace.env with
+          | "default" -> L.build_call mult_func [| se1_ ; se2_ |]
+          | _ -> pe_mul the_namespace se1_ se2_)
+        | DotMul -> L.build_call dotmul_func [| se1_ ; se2_ |]
+        | Div -> L.build_call divide_func [| se1_ ; se2_ |]
+        | FlrDiv -> L.build_call floordivide_func [| se1_ ; se2_ |]
+        | Pow -> L.build_call matpow_func [| se1_ ; se2_ |]
+        | DotPow -> L.build_call dotpow_func [| se1_ ; se2_ |]
+        | Mod -> L.build_call mod_func [| se1_ ; se2_ |]
+        | Eq -> L.build_call equal_func [| se1_ ; se2_ |]
+        | Neq -> L.build_call notequal_func [| se1_ ; se2_ |]
+        | Geq -> L.build_call greaterequal_func [| se1_ ; se2_ |]
+        | Gt -> L.build_call greater_func [| se1_ ; se2_ |]
+        | Leq -> L.build_call lessequal_func [| se1_ ; se2_ |]
+        | Lt -> L.build_call less_func [| se1_ ; se2_ |]
+        | And -> L.build_call logicaland_func [| se1_ ; se2_ |]
+        | Or -> L.build_call logicalor_func [| se1_ ; se2_ |]        
+        ) "tmpOp" the_namespace.builder
         (* cast_voidpt_to_tensor the_namespace "tmpOp" tmpOp *)
+    | (_, SUnop(uop, se1)) -> 
+      let se1_ = genExpr the_namespace se1 in
+      (match uop with
+        Transpose -> L.build_call transpose_func
+      |  Not -> L.build_call logicalnot_func
+      ) [| se1_ |] "tmpOp" the_namespace.builder
     | (STensorTup(t, n, d), STensor(y)) ->
         (match t with 
           INT_Tensor -> build_tensor the_namespace int_t int_t (gen_value i8_t 0) (gen_value i8_t n) (gen_dim i8_t d) (gen_array int_t y)
@@ -299,7 +451,7 @@ let translate sstmts =
                              let argv = Array.to_list (L.params the_function) in
                              List.iter2 (set_localptr the_builder local_symbol_table) str2 argv;
                              let build_return b = L.build_ret (L.const_pointer_null i8ptr_t) b in
-                             let local_namespace = {symbol_table = local_symbol_table; function_table = local_function_table; func = the_function; builder = the_builder; global = false} in
+                             let local_namespace = {symbol_table = local_symbol_table; function_table = local_function_table; func = the_function; builder = the_builder; global = false; env = the_namespace.env} in
                              let local_namespace = List.fold_left stmt local_namespace ss1 in
                              ignore(add_terminal the_builder build_return);
                              the_namespace (* return the main namespace *)
@@ -313,7 +465,8 @@ let translate sstmts =
                                                        function_table = the_namespace.function_table;
                                                        func = the_namespace.func; 
                                                        builder = local_builder;
-                                                       global = the_namespace.global} in
+                                                       global = the_namespace.global;
+                                                       env = the_namespace.env} in
                                 let local_namespace = List.fold_left stmt local_namespace ss1 in
                                 ignore(add_terminal local_namespace.builder build_br_merge);
                                 let else_bb = L.append_block context "else" the_namespace.func in
@@ -322,12 +475,13 @@ let translate sstmts =
                                                        function_table = the_namespace.function_table;
                                                        func = the_namespace.func; 
                                                        builder = local_builder;
-                                                       global = the_namespace.global} in
+                                                       global = the_namespace.global;
+                                                       env = the_namespace.env} in
                                 let local_namespace = List.fold_left stmt local_namespace ss2 in
                                 ignore(add_terminal local_namespace.builder build_br_merge);
                                 ignore(L.build_cond_br bool_val then_bb else_bb the_namespace.builder);
                                 let builder = L.builder_at_end context merge_bb in
-                                {symbol_table = the_namespace.symbol_table; function_table = the_namespace.function_table; func = the_namespace.func; builder = builder; global = the_namespace.global}
+                                {symbol_table = the_namespace.symbol_table; function_table = the_namespace.function_table; func = the_namespace.func; builder = builder; global = the_namespace.global; env = the_namespace.env}
     | SWhileStmt(se1, ss1) -> let pred_bb = L.append_block context "while" the_namespace.func in
                               ignore(L.build_br pred_bb the_namespace.builder);
                               let body_bb = L.append_block context "while_body" the_namespace.func in
@@ -336,7 +490,8 @@ let translate sstmts =
                                                      function_table = the_namespace.function_table;
                                                      func = the_namespace.func; 
                                                      builder = local_builder;
-                                                     global = the_namespace.global} in
+                                                     global = the_namespace.global;
+                                                     env = the_namespace.env} in
                               let local_namespace = List.fold_left stmt local_namespace ss1 in
                               ignore(add_terminal local_namespace.builder (L.build_br pred_bb));
                               let pred_builder = L.builder_at_end context pred_bb in
@@ -344,13 +499,14 @@ let translate sstmts =
                                                      function_table = the_namespace.function_table;
                                                      func = the_namespace.func;
                                                      builder = pred_builder;
-                                                     global = the_namespace.global} in
+                                                     global = the_namespace.global;
+                                                     env = the_namespace.env} in
                               let se1_ = genExpr local_namespace se1 in
                               let bool_val = L.build_call bool_of_zero [| se1_ |] "bool" local_namespace.builder in
                               let merge_bb = L.append_block context "merge" the_namespace.func in
                               ignore(L.build_cond_br bool_val body_bb merge_bb pred_builder);
                               let builder = L.builder_at_end context merge_bb in
-                              {symbol_table = the_namespace.symbol_table; function_table = the_namespace.function_table; func = the_namespace.func; builder = builder; global = the_namespace.global}
+                              {symbol_table = the_namespace.symbol_table; function_table = the_namespace.function_table; func = the_namespace.func; builder = builder; global = the_namespace.global;env = the_namespace.env}
     | SForStmt(str1, se1, ss1) -> let idxptr = L.build_alloca int_t "idxptr" the_namespace.builder in
                                   ignore(L.build_store (L.const_int int_t (0)) idxptr the_namespace.builder);
                                   let tensor = genExpr the_namespace se1 in
@@ -363,7 +519,8 @@ let translate sstmts =
                                                         function_table = the_namespace.function_table;
                                                         func = the_namespace.func; 
                                                         builder = pred_builder;
-                                                        global = the_namespace.global} in
+                                                        global = the_namespace.global;
+                                                        env = the_namespace.env} in
                                   let indicator = L.build_load idxptr "idx" pred_builder in
                                   let new_indicator = L.build_add indicator (L.const_int int_t 1) "new_idx"  pred_builder in
                                   ignore(L.build_store new_indicator idxptr pred_builder);
@@ -377,19 +534,110 @@ let translate sstmts =
                                                         function_table = the_namespace.function_table;
                                                         func = the_namespace.func; 
                                                         builder = local_builder;
-                                                        global = the_namespace.global} in
+                                                        global = the_namespace.global;
+                                                        env = the_namespace.env} in
                                   let local_namespace = List.fold_left stmt local_namespace ss1 in
                                   ignore(add_terminal local_namespace.builder (L.build_br pred_bb));
 
                                   let merge_bb = L.append_block context "merge" the_namespace.func in
                                   ignore(L.build_cond_br cond merge_bb body_bb pred_builder);
                                   let builder = L.builder_at_end context merge_bb in
-                                  {symbol_table = the_namespace.symbol_table; function_table = the_namespace.function_table; func = the_namespace.func; builder = builder; global = the_namespace.global}
+                                  {symbol_table = the_namespace.symbol_table; function_table = the_namespace.function_table; func = the_namespace.func; builder = builder; global = the_namespace.global; env = the_namespace.env}
     | SReturn(se1) -> ignore(L.build_ret (genExpr the_namespace se1) the_namespace.builder); the_namespace
+    | SPEInvoke(str1) -> {symbol_table = the_namespace.symbol_table; function_table = the_namespace.function_table; func = the_namespace.func; builder = the_namespace.builder; global = the_namespace.global; env = str1}
+    | SPEEnd(str1) -> {symbol_table = the_namespace.symbol_table; function_table = the_namespace.function_table; func = the_namespace.func; builder = the_namespace.builder; global = the_namespace.global; env = "default"}
+  
+  and pedecl main_namespace (pename, pebody) =
+      let map_value_helper bigname po_map_array idx (name, _) = 
+        let fname = bigname ^ name in
+        let tmp = L.build_struct_gep po_map_array idx "tmp" main_namespace.builder in
+        let ftmp = match (L.lookup_function fname the_module) with Some z-> z in
+        ignore(L.build_store ftmp tmp main_namespace.builder);
+        idx+1
+      in
+
+      let pofp_creator pename pofunc =
+        let poname = pename ^ pofunc.soperator in
+        let funcn = List.length(pofunc.smapfuncs) in 
+        let po_map_id = poname ^ "maps" in
+        let po_map_array = L.define_global po_map_id (L.const_null (L.array_type map_func_ptr_t funcn)) the_module in
+        (* ignore(StringHash.add main_namespace.symbol_table po_map_id po_map_array); *)
+        ignore(List.fold_left (map_value_helper poname po_map_array) 0 pofunc.smapfuncs);
+        let po_reduce_id = poname ^ "reduce" in 
+        let po_reduce = L.define_global po_reduce_id (L.const_pointer_null reduce_func_ptr_t) the_module in
+        (* ignore(StringHash.add main_namespace.symbol_table po_reduce_id po_reduce); *)
+        let ftmp = match (L.lookup_function (poname ^ "reduce") the_module) with Some z-> z in
+        ignore(L.build_store ftmp po_reduce main_namespace.builder);
+        PO({
+          funcnum = funcn;
+          mapfuncs = po_map_array;
+          refunc = po_reduce;
+        })
+      in
+      let build_pofunc bigname paras (name, stmts) =
+        let fname = bigname ^ name in
+        let (the_function, the_builder) = build_fn fname 2 in
+        let local_symbol_table = StringHash.create 10 in
+        let local_function_table = StringHash.create 10 in
+        let argv = Array.to_list (L.params the_function) in
+        List.iter2 (set_localptr the_builder local_symbol_table) paras argv;
+        let build_return b = L.build_ret (L.const_pointer_null i8ptr_t) b in
+        let local_namespace = {symbol_table = local_symbol_table; function_table = local_function_table; func = the_function; builder = the_builder; global = false; env = "default"} in
+        let local_namespace = List.fold_left stmt local_namespace stmts in
+        ignore(add_terminal the_builder build_return); 
+      in 
+      let reduce_value_helper local_symbol_table the_builder reduce_array idx name = 
+        let alloca = L.build_alloca i8ptr_t name the_builder in
+        let newa = L.build_load reduce_array "newa" the_builder in
+        let tmp = L.build_gep newa [|(L.const_int int_t idx)|] "tmp" the_builder in
+        let newv = L.build_load tmp "newv" the_builder in
+        ignore(L.build_store newv alloca the_builder);
+        ignore(StringHash.add local_symbol_table name alloca);
+        idx+1
+      in
+
+      let build_reducefunc name vars stmts =
+        let the_function = L.define_function name reduce_func_t the_module in
+        let the_builder = L.builder_at_end context (L.entry_block the_function) in
+        let local_symbol_table = StringHash.create 10 in
+        let local_function_table = StringHash.create 10 in
+
+        let argval = List.hd(Array.to_list (L.params the_function)) in
+        ignore(L.set_value_name "result" argval);
+        let alloca = L.build_alloca i8ptr_ptr_t "result" the_builder in
+        ignore(L.build_store argval alloca the_builder);
+
+        ignore(List.fold_left (reduce_value_helper local_symbol_table the_builder alloca) 0 vars);
+
+        let build_return b = L.build_ret (L.const_pointer_null i8ptr_t) b in
+        let local_namespace = {symbol_table = local_symbol_table; function_table = local_function_table; func = the_function; builder = the_builder; global = false; env = "default"} in
+        let local_namespace = List.fold_left stmt local_namespace stmts in
+        ignore(add_terminal the_builder build_return);
+      in
+      let pogenerate pename pofunc =
+        let poname = pename ^ pofunc.soperator in
+        ignore(List.iter (build_pofunc poname pofunc.sparams) pofunc.smapfuncs);
+        ignore(build_reducefunc (poname ^ "reduce") (List.map (fun (name, _) -> name) pofunc.smapfuncs) pofunc.sreducefunc);
+        pofp_creator pename pofunc
+      in
+      let podecl pename pof = 
+      match pof with
+        SDEF -> DEF
+      | SPO(p) -> pogenerate pename p
+      in
+      ignore(StringHash.add global_pe_table pename
+      {
+        add = podecl pename pebody.sadd;
+        minus = podecl pename pebody.sminus;
+        multi = podecl pename pebody.smulti;
+      });
+      main_namespace
+
   in
 
   let main_builder = L.builder_at_end context (L.entry_block main_function) in
-  let main_namespace = {symbol_table = global_symbol_table; function_table = global_function_table; func = main_function; builder = main_builder; global = true} in
+  let main_namespace = {symbol_table = global_symbol_table; function_table = global_function_table; func = main_function; builder = main_builder; global = true; env = "default"} in
+  let main_namespace = List.fold_left pedecl main_namespace spes in
   let main_namespace = List.fold_left stmt main_namespace sstmts in
   ignore(L.build_ret (L.const_int i8_t 0) main_namespace.builder);
   the_module;

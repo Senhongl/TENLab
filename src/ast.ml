@@ -85,19 +85,23 @@ type stmt =
 | IfStmt of expr * stmt list * stmt list
 | ForStmt of string * expr * stmt list
 | WhileStmt of expr * stmt list
-(* Parallel Environment *)
-| PEDecl of asexpr * stmt list
-| PEInvoke of asexpr
-| POSign of string * string list
-| ParallelOperator of stmt * stmt
-| MapReduce of stmt list * stmt
-| MapFunc of asexpr * stmt list
-| ReduceFunc of stmt list
+| PEInvoke of string
+| PEEnd of string
 (* Keyword statement *)
 | Return of expr
 | Break
 | Continue
 | Exit of expr
+
+type pofunc = {
+  operator : string;
+  params : string list;
+  headstmt : stmt list;
+  mapfuncs : (string * stmt list) list;
+  reducefunc : stmt list;
+}
+
+type program = (string * pofunc list) list * stmt list
 
 
 let string_of_bop = function
@@ -119,7 +123,7 @@ let string_of_bop = function
 | And -> "&&"
 | Or -> "||"
 
-(* 
+
 let string_of_uop = function
   Not -> "!"
 | Neg -> "-"
@@ -185,17 +189,28 @@ let rec string_of_stmt = function
 | ForStmt(str1, e1, s1) -> "for (" ^ str1 ^ " in " ^ string_of_expr e1 ^ ") {\n" ^ String.concat "," (List.map string_of_stmt s1) ^ "\n}\n"
 | WhileStmt(e1, s1) -> "while (" ^ string_of_expr e1 ^ ") {\n" ^ String.concat "," (List.map string_of_stmt s1) ^ "\n}\n"
 (* Parallel Environment *)
-| PEDecl(e1, s1) -> "parallel_define " ^ string_of_expr e1 ^ "{\n" ^ String.concat "," (List.map string_of_stmt s1) ^ "}\n"
-| PEInvoke(e1) -> "using " ^ string_of_expr e1
-| POSign(str1, str2) -> "    overload " ^ str1 ^ " (" ^ String.concat "," str2 ^ ") "
-| ParallelOperator(s1, s2) -> string_of_stmt s1 ^ "\n" ^ string_of_stmt s2
-| MapReduce(map, reduce) -> String.concat "\n" (List.map string_of_stmt map) ^ "\n" ^ string_of_stmt reduce
-| MapFunc(e1, s1)-> "        map " ^ string_of_expr e1 ^ "{\n" ^ String.concat "\n" (List.map string_of_stmt s1) ^ "}"
-| ReduceFunc(s1)-> "        reduce {\n" ^ String.concat "\n" (List.map string_of_stmt s1) ^ "}"
+| PEInvoke(s1) -> "using " ^ s1
+| PEEnd(s1) -> "end " ^ s1
 | Return(e1) -> "return " ^ string_of_expr e1 ^ "\n"
 | Break -> "break\n"
 | Continue -> "continue\n"
-| Exit(e1) -> "exit" ^ string_of_expr e1 ^ "\n" *)
-(* 
-and string_of_program l = String.concat ";\n" (List.map string_of_stmt l) ^ "\n" *)
-and string_of_program l = "todo\n"
+| Exit(e1) -> "exit" ^ string_of_expr e1 ^ "\n"
+
+let string_of_mapfunc (id, s) =
+    "map " ^ id ^ "{\n" ^ String.concat "" (List.map string_of_stmt s) ^ "}\n"
+
+let string_of_po po=
+    "Overload " ^ po.operator ^
+    "(" ^ String.concat "," po.params ^ ")" ^
+    "{\n" ^
+    String.concat "" (List.map string_of_stmt po.headstmt) ^
+    String.concat "" (List.map string_of_mapfunc po.mapfuncs) ^
+    "reduce " ^ "{\n" ^ String.concat "" (List.map string_of_stmt po.reducefunc) ^ "}\n" ^
+    "}\n"
+
+let string_of_pe (str1, p2) =
+    "parallel_define " ^ str1 ^ "{\n" ^ String.concat "" (List.map string_of_po p2) ^ "}\n"
+
+let string_of_program (pes,stmts) =
+    String.concat "" (List.map string_of_pe pes) ^
+    String.concat ";\n" (List.map string_of_stmt stmts) ^ "\n"

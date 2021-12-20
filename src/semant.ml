@@ -11,6 +11,7 @@ end)
 
 let symbol_table = StringHash.create 10
 let function_table = StringHash.create 10
+let pe_table = StringHash.create 10
 
 let rec equal_dim d1 d2=
   match d1, d2 with
@@ -70,6 +71,7 @@ let rec check_expr symbol_table function_table = function
 | FId(id) -> if StringHash.mem symbol_table id then StringHash.remove symbol_table id;
              if StringHash.mem function_table id then (SVoidTup, SFId(id)) else raise (Failure("function " ^ id ^ " not defined"))
 | Binop(x1, bop, x2) -> (SVoidTup, SBinop(check_expr symbol_table function_table x1, bop, check_expr symbol_table function_table x2))
+| Unop(uop, x) -> (SVoidTup, SUnop(uop, check_expr symbol_table function_table x))
 | Tensor(x) -> (match check_tensor(x) with 
   | (TensorTup(t, n, d::d_), y) -> (STensorTup(t, n, Array.of_list d_), STensor(y))
   | (_, _) -> raise (Failure( "ought not occur")))
@@ -133,6 +135,52 @@ let rec check_stmt symbol_table function_table = function
 | Continue -> SContinue
 | Exit(e1) -> let e1_ = check_expr symbol_table function_table e1 in
               SExit(e1_)
+| PEInvoke(s1) -> let z = StringHash.find pe_table s1 in
+if (z=1) then SPEInvoke(s1) else raise (Failure("PE does not exist"))
+| PEEnd(s1) -> let z = StringHash.find pe_table s1 in
+if (z=1) then  SPEEnd(s1)  else raise (Failure("PE does not exist"))
 
-let check stmts = 
-  List.map (check_stmt symbol_table function_table) stmts
+let check_mapf s f (name,statements) = 
+let ps = StringHash.copy s in
+let fs = StringHash.copy f in
+(name, List.map (check_stmt ps fs) statements)
+
+let check_po po =
+let psymbol_table = StringHash.create 10 in
+let pfunction_table = StringHash.create 10 in
+ignore(List.iter (fun s -> StringHash.add psymbol_table s (SVoidTup, SVoidExpr)) po.params);
+let app x =
+ignore(List.iter (fun (name,_) -> StringHash.add psymbol_table name (SVoidTup, SVoidExpr)) po.mapfuncs); x
+in
+let oprewrite = function
+  | "__+__" -> "ADD"
+  | "__-__" -> "SUB"
+  | "__*__" -> "MUL"
+in 
+{
+  soperator = oprewrite po.operator;
+  sparams = po.params; 
+  smapfuncs = List.map (check_mapf psymbol_table pfunction_table) po.mapfuncs;
+  sreducefunc = List.map (check_stmt psymbol_table pfunction_table) (app po.reducefunc)
+}
+
+let fill_pe pe spo =
+match spo.soperator with 
+| "ADD" -> {sadd = SPO(spo);
+            sminus = pe.sminus;
+            smulti = pe.smulti;}
+| "SUB" -> {sadd = pe.sadd;
+            sminus = SPO(spo);
+            smulti = pe.smulti;}
+| "MUL" -> {sadd = pe.sadd;
+            sminus = pe.sminus;
+            smulti = SPO(spo);}
+
+let check_pe (name, pos) =
+ignore(StringHash.add pe_table name 1);
+(name, List.fold_left fill_pe {sadd = SDEF; sminus = SDEF; smulti = SDEF;} (List.map check_po pos))
+
+let check (pes,stmts) = 
+let z1 = List.map check_pe pes in
+let z2 = List.map (check_stmt symbol_table function_table) stmts in
+(z1, z2)
