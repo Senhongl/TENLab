@@ -1,4 +1,9 @@
- 1
- 2
- 4
-[ CPUIntType{3} ]
+[1
+[ CPUIntType{} ]
+,[1
+[ CPUIntType{} ]
+,2
+[ CPUIntType{} ]
+],4
+[ CPUIntType{} ]
+]

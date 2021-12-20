@@ -22,7 +22,7 @@ extern "C" void print(void *a)
     tensor *x = (tensor *)a;
     if (x->type == 3) {
         print_var(x);
-        // index_get(a);
+        printf("\n");
     }
     else
         std::cout << toTensor(x) << std::endl;
