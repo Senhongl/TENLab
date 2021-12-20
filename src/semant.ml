@@ -88,6 +88,9 @@ let rec check_expr symbol_table function_table = function
                     if StringHash.mem symbol_table id then (SVoidTup, SASexpr(Idind(id, x_)))
                     else raise (Failure( "variable " ^ id ^ " not defined")))
 | Print(e) -> (SVoidTup, SPrint(check_expr symbol_table function_table e))
+| Shape(e) -> (SVoidTup, SShape(check_expr symbol_table function_table e))
+| Zeros(e) -> (SVoidTup, SZeros(check_expr symbol_table function_table e))
+| Cat(e1,e2,e3) -> (SVoidTup, Scat(check_expr symbol_table function_table e1, check_expr symbol_table function_table e2, check_expr symbol_table function_table e3))
 | FuncCall(e1, e2) -> let e1_ = check_expr symbol_table function_table e1 in
                       let e2_ = List.map (check_expr symbol_table function_table) e2 in
                       let FId(id) = e1 in

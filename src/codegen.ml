@@ -252,6 +252,20 @@ let translate (spes,sstmts) =
     L.function_type i8ptr_t [| i8ptr_t |] in
   let logicalnot_func : L.llvalue = 
     L.declare_function "logicalnot" logicalnot_t the_module in
+
+  let zeros_t : L.lltype = 
+    L.function_type i8ptr_t [| i8ptr_t |] in
+  let zeros_func : L.llvalue = 
+    L.declare_function "zeros" zeros_t the_module in
+  let cat_t : L.lltype = 
+    L.function_type i8ptr_t [| i8ptr_t; i8ptr_t; i8ptr_t |] in
+  let cat_func : L.llvalue = 
+    L.declare_function "cat" cat_t the_module in
+  let shape_t : L.lltype = 
+    L.function_type i8ptr_t [| i8ptr_t |] in
+  let shape_func : L.llvalue = 
+    L.declare_function "shape" shape_t the_module in
+
   let bool_of_zero_t : L.lltype =
     L.function_type bool_t [| i8ptr_t |] in
   let bool_of_zero : L.llvalue = 
@@ -414,6 +428,14 @@ let translate (spes,sstmts) =
       )
     | (_, SPrint(se1)) -> let se1_ = genExpr the_namespace se1 in
                           L.build_call print_func [| se1_ |] "" the_namespace.builder
+    | (_, SZeros(se1)) -> let se1_ = genExpr the_namespace se1 in
+                          L.build_call zeros_func [| se1_ |] "" the_namespace.builder
+    | (_, SShape(se1)) -> let se1_ = genExpr the_namespace se1 in
+                          L.build_call shape_func [| se1_ |] "" the_namespace.builder
+    | (_, SCat(se1, se2, se3)) -> let se1_ = genExpr the_namespace se1 in
+                                  and se2_ = genExpr the_namespace se2 in
+                                  and se3_ = genExpr the_namespace se3 in
+                          L.build_call cat_func [| se1_ ; se2_ ; se3_ |] "" the_namespace.builder
     | (_, SFuncCall(str1, se1)) -> let (the_function, the_builder) = StringHash.find the_namespace.function_table str1 in
                                    let argv = List.map (genExpr the_namespace) se1 in
                                    L.build_call the_function (Array.of_list argv) "ret" the_namespace.builder

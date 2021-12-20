@@ -75,7 +75,7 @@ rule tokenize = parse
 | "all" { ALL }
 | "sum" { SUM }
 | "ones" { ONES }
-| "zeros" { LEN }
+| "zeros" { ZEROS }
 | "int_of" { INT_OF }
 | "float_of" { FLOAT_OF }
 | "floor" { FLOOR }
