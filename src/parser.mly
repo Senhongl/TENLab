@@ -186,10 +186,9 @@ reduce_func: REDUCE func_stmt_body { $2 }
  ***************************************************************************************/
 expr:
 // multi-dim data type
-// TODO: String tensor?
+| VAR tensor { VarTs($2) }
 | tensor { Tensor($1) }
-// Indentifier
-| IDENTIFIER { Id($1) }
+| asexpr { ASexpr($1) }
 // Expression within parenthesis
 | LEFT_PARENTHESIS expr RIGHT_PARENTHESIS { $2 }
 // Binary expression
@@ -241,6 +240,11 @@ expr:
 | EIGV LEFT_PARENTHESIS expr RIGHT_PARENTHESIS { Eigv($3) }
 // function call
 | func_call { $1 }
+
+
+asexpr:
+    IDENTIFIER { Id($1) }
+  | IDENTIFIER tensor { Idind($1, $2) }
 
 // tensor
 tensor:

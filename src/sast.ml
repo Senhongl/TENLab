@@ -5,12 +5,19 @@ open Ast
 
 type sdimtype = STensorTup of tensortype * int * int array | SVoidTup
 
+type index = int * int array * literal array
+
+type sasexpr = 
+  Id of string
+| Idind of string * (int * index list)
+
 type sexpr = sdimtype * sx
 and sx =
   SVoidExpr (* for semantic check only *)
-| SId of string
 | SFId of string
 | STensor of literal array
+| SVtensor of tensor
+| SASexpr of sasexpr
 | SBinop of sexpr * bop * sexpr
 | SUnop of uop * sexpr
 | SRange of sexpr * sexpr * sexpr

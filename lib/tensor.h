@@ -26,6 +26,7 @@ typedef struct tensor
     int8_t ndim;
     int8_t *dims;
     void *data;
+    int8_t rc;
 } tensor;
 
 torch::Dtype toType(const tensor * const a);

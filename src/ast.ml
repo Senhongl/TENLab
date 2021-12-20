@@ -30,9 +30,10 @@ type operator_name =
 | MulSymbol
 
 type expr =
-  Id of string
 | FId of string
 | Tensor of tensor
+| VarTs of tensor
+| ASexpr of asexpr
 | Binop of expr * bop * expr
 | Unop of uop * expr
 | Range of expr * expr * expr
@@ -60,6 +61,10 @@ type expr =
 | Eigv of expr
 
 | FuncCall of expr * expr list
+
+and asexpr = 
+  Id of string
+| Idind of string * tensor
 
 (* Tensor *)
 and tensor =
@@ -138,8 +143,10 @@ let rec string_of_tensor = function
 | NPTensors(t1, t2) -> string_of_tensor t1 ^ ", " ^ string_of_tensor t2
 
 
+let rec string_of_asexpr = function
+| Id(id) -> id
+
 let rec string_of_expr = function
-  Id(str1) -> str1
 | FId(str1) -> str1
 | Tensor(t1) -> string_of_tensor t1
 | Binop(e1, bop, e2) -> string_of_expr e1 ^ " " ^ string_of_bop bop ^ " " ^ string_of_expr e2

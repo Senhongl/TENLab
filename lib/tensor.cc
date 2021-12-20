@@ -4,7 +4,7 @@ torch::Dtype toType(const tensor * const a)
 {
     switch (a->type) {
         case 0: return torch::kInt32;
-        case 1: return torch::kFloat32;
+        case 1: return torch::kFloat64;
 
         default: check(0, "Invalid type");
     }
@@ -14,7 +14,7 @@ int8_t fromType(const torch::Dtype &a_type)
 {
     switch (a_type) {
         case torch::kInt32: return 0;
-        case torch::kFloat32: return 1;
+        case torch::kFloat64: return 1;
 
         default: check(0, "Invalid type");
     }
@@ -50,6 +50,7 @@ tensor *fromTensor(const torch::Tensor &a_t)
     unsigned int eleBytes = sizeof(int32_t) * torch::numel(a_t);
     a->data = (int32_t *)malloc(eleBytes);
     memcpy(a->data, a_t.data_ptr(), eleBytes);
+    a->rc = 1; // todo: 0 or 1?
 
     return a;
 }

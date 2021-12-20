@@ -1,11 +1,11 @@
 parallel_define et {
     overload __+__ (x,y) {
 		map f1 {
-			z = x+y;
+			z = x[0]+y[0];
 			return z;
 		}
 		map f2 {
-			z = x+y;
+			z = x[1]+y[1];
 			return z;
 		}
 		reduce {
@@ -15,5 +15,4 @@ parallel_define et {
 }
 
 using et;
-print(1+2);
-
+print([1,1]+[2,2]);
