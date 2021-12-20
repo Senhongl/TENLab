@@ -186,7 +186,7 @@ reduce_func: REDUCE func_stmt_body { $2 }
  ***************************************************************************************/
 expr:
 // multi-dim data type
-| VAR tensor { VarTs($2) }
+| VAR vtensor { VarTs($2) }
 | tensor { Tensor($1) }
 | asexpr { ASexpr($1) }
 // Expression within parenthesis
@@ -244,7 +244,7 @@ expr:
 
 asexpr:
     IDENTIFIER { Id($1) }
-  | IDENTIFIER tensor { Idind($1, $2) }
+  | IDENTIFIER vtensor { Idind($1, $2) }
 
 // tensor
 tensor:
@@ -257,3 +257,11 @@ tensor:
 n_tensor:
     tensor COMMA n_tensor { NPTensors($1, $3) }
   | tensor { NPTensor($1) }
+
+vtensor:
+    LEFT_SQUARE_BRACKET expr COMMA n_vtensor RIGHT_SQUARE_BRACKET { $2 :: $4 }
+  | LEFT_SQUARE_BRACKET expr RIGHT_SQUARE_BRACKET { [$2] }
+
+n_vtensor:
+    expr { [$1] }
+  | expr COMMA n_vtensor { $1 :: $3 }

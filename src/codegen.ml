@@ -368,7 +368,12 @@ let translate (spes,sstmts) =
           INT_Tensor -> build_tensor the_namespace int_t int_t (gen_value i8_t 0) (gen_value i8_t n) (gen_dim i8_t d) (gen_array int_t y)
         | FLOAT_Tensor -> build_tensor the_namespace float_t i64_t (gen_value i8_t 1) (gen_value i8_t n) (gen_dim i8_t d) (gen_array float_t y)
         )
-    | (_, SVtensor(x)) -> let rec gen_vartensor = function
+    | (_, SVtensor(x)) -> 
+      let x_ = Array.of_list(List.map (genExpr the_namespace) x) in
+            let dims = gen_dim i8_t [|Array.length(x_)|] in
+            let data = x_ in
+              build_tensor the_namespace i8ptr_t i64_t (gen_value i8_t 3) (gen_value i8_t 1) dims data 
+      (*let rec gen_vartensor = function
         Tensor0(x) -> (match x with
           IntLit(_) -> [|build_tensor the_namespace int_t int_t (gen_value i8_t 0) (gen_value i8_t 0) (gen_dim i8_t [||]) (gen_array int_t [|x|])|]
         | FloatLit(_) -> [|build_tensor the_namespace float_t i64_t (gen_value i8_t 1) (gen_value i8_t 0) (gen_dim i8_t [||]) (gen_array float_t [|x|])|])
@@ -385,10 +390,17 @@ let translate (spes,sstmts) =
       | NPTensor(x) -> gen_vartensor(x)
       | NPTensors(x1, x2) -> let y1 = gen_vartensor(x1) and y2 = gen_vartensor(x2) in
                              Array.append y1 y2
-      in let y = gen_vartensor(x) in y.(0)
+      in let y = gen_vartensor(x) in y.(0)*)
     | (_, SASexpr(x)) -> (match x with 
         Id(id) -> L.build_load (lookup id the_namespace) id the_namespace.builder
-      | Idind(s, x) -> (match x with
+      | Idind(s, x) -> 
+        let x_ = Array.of_list(List.map (genExpr the_namespace) x) in
+            let dims = gen_dim i8_t [|Array.length(x_)|] in
+            let data = x_ in
+            let xptr = build_tensor the_namespace i8ptr_t i64_t (gen_value i8_t 3) (gen_value i8_t 1) dims data in
+            let sptr = L.build_load (lookup s the_namespace) s the_namespace.builder in
+            L.build_call index_get [|sptr; xptr|] "access_tensor" the_namespace.builder
+        (*(match x with
           (nlist, indlist) -> let rec gen_indlist = function
             [] -> [||]
           | (n, d, y)::indlist_ -> let i0 = genExpr the_namespace (STensorTup(INT_Tensor, n, d), STensor(y)) in 
@@ -398,7 +410,7 @@ let translate (spes,sstmts) =
             let xptr = build_tensor the_namespace i8ptr_t i64_t (gen_value i8_t 3) (gen_value i8_t 1) dims data in
             let sptr = L.build_load (lookup s the_namespace) s the_namespace.builder in
             L.build_call index_get [|sptr; xptr|] "access_tensor" the_namespace.builder
-          )
+          )*)
       )
     | (_, SPrint(se1)) -> let se1_ = genExpr the_namespace se1 in
                           L.build_call print_func [| se1_ |] "" the_namespace.builder
@@ -430,7 +442,14 @@ let translate (spes,sstmts) =
                           the_namespace
             | Idind(s, x) ->
                           let rhs = genExpr the_namespace se1 in
-                  (match x with
+                          let x_ = Array.of_list(List.map (genExpr the_namespace) x) in
+                            let dims = gen_dim i8_t [|Array.length(x_)|] in
+                            let data = x_ in
+                            let xptr = build_tensor the_namespace i8ptr_t i64_t (gen_value i8_t 3) (gen_value i8_t 1) dims data in
+                            let sptr = L.build_load (lookup s the_namespace) s the_namespace.builder in
+                            L.build_call index_put [|sptr; xptr; rhs|] "" the_namespace.builder;
+                            the_namespace
+                  (*(match x with
                           (nlist, indlist) -> let rec gen_indlist = function
                             [] -> [||]
                           | (n, d, y)::indlist_ -> let i0 = genExpr the_namespace (STensorTup(INT_Tensor, n, d), STensor(y)) in 
@@ -440,7 +459,7 @@ let translate (spes,sstmts) =
                             let xptr = build_tensor the_namespace i8ptr_t i64_t (gen_value i8_t 3) (gen_value i8_t 1) dims data in
                             let sptr = L.build_load (lookup s the_namespace) s the_namespace.builder in
                             L.build_call index_put [|sptr; xptr; rhs|] "" the_namespace.builder
-                  ); the_namespace
+                  ); the_namespace*)
             )
     | SFuncDecl(str1, str2, ss1) -> let argc = List.length(str2) in
                              let (the_function, the_builder) = build_fn str1 argc in

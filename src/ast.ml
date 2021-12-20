@@ -32,7 +32,7 @@ type operator_name =
 type expr =
 | FId of string
 | Tensor of tensor
-| VarTs of tensor
+| VarTs of expr list
 | ASexpr of asexpr
 | Binop of expr * bop * expr
 | Unop of uop * expr
@@ -64,7 +64,7 @@ type expr =
 
 and asexpr = 
   Id of string
-| Idind of string * tensor
+| Idind of string * expr list
 
 (* Tensor *)
 and tensor =
@@ -180,7 +180,7 @@ let rec string_of_expr = function
 let rec string_of_stmt = function
   EmptyStmt -> ""
 | Expr(e1) -> string_of_expr e1
-| Assign(str1, e2) -> (str1 ^ " = " ^ string_of_expr e2)
+(*| Assign(str1, e2) -> (str1 ^ " = " ^ string_of_expr e2)*)
 (* | FuncSign(str1, str2) -> str1 ^ "(" ^ (String.concat "," str2) ^ ")" ^ "\n" *)
 | FuncDecl(str1, str2, s1) -> "def " ^ str1 ^ "(" ^ String.concat "," str2 ^ ")" ^ "{\n" ^ String.concat ";\n" (List.map string_of_stmt s1) ^ "}\n"
 | IfStmt(e1, s2, s3) -> (match s3 with

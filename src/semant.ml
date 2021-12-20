@@ -50,7 +50,7 @@ let rec check_tensor = function
           else raise (Failure("invalid dim"))
       | _, _ -> raise (Failure("ought not occur")))
 
-let check_type = function
+(*let check_type = function
   INT_Tensor -> 0
 | FLOAT_Tensor -> 1
 
@@ -64,7 +64,7 @@ let rec check_intv = function
 | NPTensors(x1, x2) -> let y1 = check_intv(NPTensor(x1)) and y2 = check_intv(x2) in
     (match y1, y2 with
       (n1, ind1), (n2, ind2) -> (n1+n2, ind1@ind2))
-| _ -> raise (Failure("wrong format of index"))
+| _ -> raise (Failure("wrong format of index"))*)
 
 (* expr -> sexpr *)
 let rec check_expr symbol_table function_table = function
@@ -75,13 +75,17 @@ let rec check_expr symbol_table function_table = function
 | Tensor(x) -> (match check_tensor(x) with 
   | (TensorTup(t, n, d::d_), y) -> (STensorTup(t, n, Array.of_list d_), STensor(y))
   | (_, _) -> raise (Failure( "ought not occur")))
-| VarTs(x) -> (SVoidTup, SVtensor(x))
+| VarTs(x) -> 
+      let x_ = List.map (check_expr symbol_table function_table) x in
+              (SVoidTup, SVtensor(x_))
 | ASexpr(x) -> (match x with 
   | Id(id) -> if StringHash.mem function_table id then StringHash.remove function_table id;
               if StringHash.mem symbol_table id then (SVoidTup, SASexpr(Id(id)))
               else raise (Failure( "variable " ^ id ^ " not defined"))
-  | Idind(id, x) -> if StringHash.mem function_table id then StringHash.remove function_table id;
-                    if StringHash.mem symbol_table id then (SVoidTup, SASexpr(Idind(id, check_intv(x))))
+  | Idind(id, x) -> 
+      let x_ = List.map (check_expr symbol_table function_table) x in
+                    if StringHash.mem function_table id then StringHash.remove function_table id;
+                    if StringHash.mem symbol_table id then (SVoidTup, SASexpr(Idind(id, x_)))
                     else raise (Failure( "variable " ^ id ^ " not defined")))
 | Print(e) -> (SVoidTup, SPrint(check_expr symbol_table function_table e))
 | FuncCall(e1, e2) -> let e1_ = check_expr symbol_table function_table e1 in
@@ -101,8 +105,9 @@ let rec check_stmt symbol_table function_table = function
             Id(str1) ->
                       ignore(StringHash.add symbol_table str1 sexpr); SAssign(Id(str1), sexpr)
           | Idind(id, x) -> 
+                let x_ = List.map (check_expr symbol_table function_table) x in
                       if StringHash.mem function_table id then StringHash.remove function_table id;
-                      if StringHash.mem symbol_table id then SAssign(Idind(id, check_intv(x)), sexpr)
+                      if StringHash.mem symbol_table id then SAssign(Idind(id, x_), sexpr)
                       else raise (Failure( "variable " ^ id ^ " not defined"))
       )
 | IfStmt(e1, s1, s2) -> let local_symbol_table = StringHash.copy symbol_table in
