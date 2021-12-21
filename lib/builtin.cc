@@ -488,7 +488,6 @@ torch::Tensor shape_t(const torch::Tensor &x_t)
     int64_t dim_tmp[size];
     for (int i = 0; i < size; i++){
         dim_tmp[i] = (int64_t)(a[i]);
-        std::cout << dim_tmp[i] << std::endl;
     }
     c10::IntArrayRef a_dim (size);
     auto options = torch::TensorOptions().dtype(torch::kInt64);
@@ -577,7 +576,6 @@ extern "C" void *zeros(void *a)
 torch::Tensor sum_t(const torch::Tensor &x_t)
 {
     torch::Tensor z_t = torch::sum(x_t);
-    std::cout << x_t.options() << std::endl;    
     return z_t;
 }
 
