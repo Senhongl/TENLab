@@ -44,8 +44,8 @@
 %left TRANSPOSE
 %right NOT
 
-%nonassoc RIGHT_PARENTHESIS 
-%nonassoc LEFT_PARENTHESIS 
+%nonassoc RIGHT_PARENTHESIS
+%nonassoc LEFT_PARENTHESIS
 
 %start main
 %type <Ast.program> main
@@ -60,17 +60,21 @@ main:
                                 Statements
  ***************************************************************************************/
 
-normal_stmts: 
+normal_stmts:
 | { [] }
 | normal_stmt normal_stmts { $1::$2 }
 
-func_stmts: 
+func_stmts:
 | { [] }
 | func_stmt func_stmts { $1::$2 }
 
-loop_stmts: 
+loop_stmts:
 | { [] }
 | loop_stmt loop_stmts { $1::$2 }
+
+func_loop_stmts:
+| { [] }
+| func_loop_stmt func_loop_stmts { $1::$2 }
 
 /*
  * A TENLab file should consist of a bunch of statements.
@@ -91,30 +95,48 @@ stmt:
 | asexpr ASSIGNMENT expr SEP { Assign($1, $3) }
 | USING IDENTIFIER SEP { PEInvoke($2) }
 | END IDENTIFIER SEP { PEEnd($2) }
+| EXIT LEFT_PARENTHESIS expr RIGHT_PARENTHESIS SEP { Exit($3) }
+
+normal_stmt:
+| stmt { $1 }
 | DEFINE IDENTIFIER LEFT_PARENTHESIS params RIGHT_PARENTHESIS func_stmt_body { FuncDecl($2, $4, $6) }
 | IF LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt_body %prec NOELSE { IfStmt($3, $5, [EmptyStmt]) }
 | IF LEFT_PARENTHESIS expr RIGHT_PARENTHESIS stmt_body ELSE stmt_body { IfStmt($3, $5, $7) }
 | FOR LEFT_PARENTHESIS IDENTIFIER IN expr RIGHT_PARENTHESIS loop_stmt_body { ForStmt($3, $5, $7) }
 | WHILE LEFT_PARENTHESIS expr RIGHT_PARENTHESIS loop_stmt_body { WhileStmt($3, $5) }
-| EXIT LEFT_PARENTHESIS expr RIGHT_PARENTHESIS SEP { Exit($3) }
-
-normal_stmt:
-| stmt { $1 }
 | RETURN expr SEP { raise(Failure ("Return outside functions")) }
 | BREAK SEP { raise(Failure ("Break outside loops"))  }
 | CONTINUE SEP { raise(Failure ("Continue outside loops"))  }
 
 func_stmt:
 | stmt { $1 }
+| IF LEFT_PARENTHESIS expr RIGHT_PARENTHESIS func_stmt_body %prec NOELSE { IfStmt($3, $5, [EmptyStmt]) }
+| IF LEFT_PARENTHESIS expr RIGHT_PARENTHESIS func_stmt_body ELSE func_stmt_body { IfStmt($3, $5, $7) }
+| FOR LEFT_PARENTHESIS IDENTIFIER IN expr RIGHT_PARENTHESIS func_loop_stmt_body { ForStmt($3, $5, $7) }
+| WHILE LEFT_PARENTHESIS expr RIGHT_PARENTHESIS func_loop_stmt_body { WhileStmt($3, $5) }
 | RETURN expr SEP { Return($2) }
 | BREAK SEP { raise(Failure ("Break outside loops"))  }
 | CONTINUE SEP { raise(Failure ("Continue outside loops"))  }
 
 loop_stmt:
 | stmt { $1 }
+| IF LEFT_PARENTHESIS expr RIGHT_PARENTHESIS loop_stmt_body %prec NOELSE { IfStmt($3, $5, [EmptyStmt]) }
+| IF LEFT_PARENTHESIS expr RIGHT_PARENTHESIS loop_stmt_body ELSE loop_stmt_body { IfStmt($3, $5, $7) }
+| FOR LEFT_PARENTHESIS IDENTIFIER IN expr RIGHT_PARENTHESIS loop_stmt_body { ForStmt($3, $5, $7) }
+| WHILE LEFT_PARENTHESIS expr RIGHT_PARENTHESIS loop_stmt_body { WhileStmt($3, $5) }
 | BREAK SEP { Break }
 | CONTINUE SEP { Continue }
 | RETURN expr SEP { raise(Failure ("Return outside functions")) }
+
+func_loop_stmt:
+| stmt { $1 }
+| IF LEFT_PARENTHESIS expr RIGHT_PARENTHESIS func_loop_stmt_body %prec NOELSE { IfStmt($3, $5, [EmptyStmt]) }
+| IF LEFT_PARENTHESIS expr RIGHT_PARENTHESIS func_loop_stmt_body ELSE func_loop_stmt_body { IfStmt($3, $5, $7) }
+| FOR LEFT_PARENTHESIS IDENTIFIER IN expr RIGHT_PARENTHESIS func_loop_stmt_body { ForStmt($3, $5, $7) }
+| WHILE LEFT_PARENTHESIS expr RIGHT_PARENTHESIS func_loop_stmt_body { WhileStmt($3, $5) }
+| BREAK SEP { Break }
+| CONTINUE SEP { Continue }
+| RETURN expr SEP { Return($2) }
 
 stmt_body: LEFT_CURLY_BRACKET normal_stmts RIGHT_CURLY_BRACKET { $2 }
 
@@ -122,6 +144,7 @@ func_stmt_body: LEFT_CURLY_BRACKET func_stmts RIGHT_CURLY_BRACKET { $2 }
 
 loop_stmt_body: LEFT_CURLY_BRACKET loop_stmts RIGHT_CURLY_BRACKET { $2 }
 
+func_loop_stmt_body: LEFT_CURLY_BRACKET func_loop_stmts RIGHT_CURLY_BRACKET { $2 }
 
 /***************************************************************************************
                         Function Call
