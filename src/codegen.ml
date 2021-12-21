@@ -429,13 +429,13 @@ let translate (spes,sstmts) =
     | (_, SPrint(se1)) -> let se1_ = genExpr the_namespace se1 in
                           L.build_call print_func [| se1_ |] "" the_namespace.builder
     | (_, SZeros(se1)) -> let se1_ = genExpr the_namespace se1 in
-                          L.build_call zeros_func [| se1_ |] "" the_namespace.builder
+                          L.build_call zeros_func [| se1_ |] "zeros" the_namespace.builder
     | (_, SShape(se1)) -> let se1_ = genExpr the_namespace se1 in
-                          L.build_call shape_func [| se1_ |] "" the_namespace.builder
-    | (_, SCat(se1, se2, se3)) -> let se1_ = genExpr the_namespace se1 in
-                                  and se2_ = genExpr the_namespace se2 in
+                          L.build_call shape_func [| se1_ |] "shape" the_namespace.builder
+    | (_, SCat(se1, se2, se3)) -> let se1_ = genExpr the_namespace se1 
+                                  and se2_ = genExpr the_namespace se2 
                                   and se3_ = genExpr the_namespace se3 in
-                          L.build_call cat_func [| se1_ ; se2_ ; se3_ |] "" the_namespace.builder
+                          L.build_call cat_func [| se1_ ; se2_ ; se3_ |] "cat" the_namespace.builder
     | (_, SFuncCall(str1, se1)) -> let (the_function, the_builder) = StringHash.find the_namespace.function_table str1 in
                                    let argv = List.map (genExpr the_namespace) se1 in
                                    L.build_call the_function (Array.of_list argv) "ret" the_namespace.builder
@@ -458,8 +458,8 @@ let translate (spes,sstmts) =
                           let rhs = genExpr the_namespace se1 in
                           let lhs = lookup id the_namespace in
                           let lhsptr = L.build_load lhs "lhsptr" the_namespace.builder in
-                          ignore(L.build_call increase_rc [| rhs |] "" the_namespace.builder);
-                          ignore(L.build_call decrease_rc [| lhsptr |] "" the_namespace.builder);
+                          (* ignore(L.build_call increase_rc [| rhs |] "" the_namespace.builder);
+                          ignore(L.build_call decrease_rc [| lhsptr |] "" the_namespace.builder); *)
                           ignore(L.build_store rhs lhs the_namespace.builder);
                           the_namespace
             | Idind(s, x) ->

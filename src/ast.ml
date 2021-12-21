@@ -142,7 +142,6 @@ let rec string_of_tensor = function
 | LRTensors(t1, t2) -> "[" ^ string_of_tensor t1 ^ ", " ^ string_of_tensor t2 ^ "]"
 | NPTensors(t1, t2) -> string_of_tensor t1 ^ ", " ^ string_of_tensor t2
 
-
 let rec string_of_asexpr = function
 | Id(id) -> id
 

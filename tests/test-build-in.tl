@@ -1,6 +1,6 @@
-d = [1,2];
-c = zeros(d);
-print(c);
-a = [[1,2,4],[3,4,6]];
-b = shape(a);
+a = [2,3,4];
+b = zeros(a);
 print(b);
+c = [4,5,6];
+print(shape(a));
+print(cat(a,c,0));
