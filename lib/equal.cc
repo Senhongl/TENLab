@@ -11,7 +11,16 @@ extern "C" void *equal(void *a, void *b)
     tensor *x = (tensor *)a;
     tensor *y = (tensor *)b;
 
-    check(x->type == y->type, "Not consistent type");
+    //check(x->type == y->type, "Not consistent type");
+    if (x->type != y->type) {
+        tensor *ret = (tensor *)malloc(sizeof(tensor));
+        ret->type = 0;
+        ret->ndim = 0;
+        ret->dims = NULL;
+        ret->data = malloc(sizeof(int));
+        *(int *)(ret->data) = 0;
+        return (void *)ret;
+    }
 
     return (void *)fromTensor(equal_t(toTensor(x), toTensor(y)));
 }
