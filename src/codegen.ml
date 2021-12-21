@@ -268,6 +268,54 @@ let translate (spes,sstmts) =
     L.function_type i8ptr_t [| i8ptr_t |] in
   let shape_func : L.llvalue = 
     L.declare_function "shape" shape_t the_module in
+  let ones_t : L.lltype = 
+    L.function_type i8ptr_t [| i8ptr_t |] in
+  let ones_func : L.llvalue = 
+    L.declare_function "ones" ones_t the_module in
+  let sum_t : L.lltype = 
+    L.function_type i8ptr_t [| i8ptr_t |] in
+  let sum_func : L.llvalue = 
+    L.declare_function "sum" sum_t the_module in
+  let any_t : L.lltype = 
+    L.function_type i8ptr_t [| i8ptr_t |] in
+  let any_func : L.llvalue = 
+    L.declare_function "any" any_t the_module in
+  let all_t : L.lltype = 
+    L.function_type i8ptr_t [| i8ptr_t |] in
+  let all_func : L.llvalue = 
+    L.declare_function "all" all_t the_module in
+  let abs_t : L.lltype = 
+    L.function_type i8ptr_t [| i8ptr_t |] in
+  let abs_func : L.llvalue = 
+    L.declare_function "abs" abs_t the_module in
+  let log_t : L.lltype = 
+    L.function_type i8ptr_t [| i8ptr_t |] in
+  let log_func : L.llvalue = 
+    L.declare_function "log" log_t the_module in
+  let floor_t : L.lltype = 
+    L.function_type i8ptr_t [| i8ptr_t |] in
+  let floor_func : L.llvalue = 
+    L.declare_function "floor" floor_t the_module in
+  let ceil_t : L.lltype = 
+    L.function_type i8ptr_t [| i8ptr_t |] in
+  let ceil_func : L.llvalue = 
+    L.declare_function "ceil" ceil_t the_module in
+  let round_t : L.lltype = 
+    L.function_type i8ptr_t [| i8ptr_t |] in
+  let round_func : L.llvalue = 
+    L.declare_function "round" round_t the_module in
+  let int_of_t : L.lltype = 
+    L.function_type i8ptr_t [| i8ptr_t |] in
+  let int_of_func : L.llvalue = 
+    L.declare_function "int_of" int_of_t the_module in
+  let float_of_t : L.lltype = 
+    L.function_type i8ptr_t [| i8ptr_t |] in
+  let float_of_func : L.llvalue = 
+    L.declare_function "float_of" float_of_t the_module in
+  let inverse_t : L.lltype = 
+    L.function_type i8ptr_t [| i8ptr_t |] in
+  let inverse_func : L.llvalue = 
+      L.declare_function "inverse" inverse_t the_module in
 
   let bool_of_zero_t : L.lltype =
     L.function_type bool_t [| i8ptr_t |] in
@@ -370,7 +418,7 @@ let translate (spes,sstmts) =
         | Leq -> L.build_call lessequal_func [| se1_ ; se2_ |]
         | Lt -> L.build_call less_func [| se1_ ; se2_ |]
         | And -> L.build_call logicaland_func [| se1_ ; se2_ |]
-        | Or -> L.build_call logicalor_func [| se1_ ; se2_ |]        
+        | Or -> L.build_call logicalor_func [| se1_ ; se2_ |]   
         ) "tmpOp" the_namespace.builder
         (* cast_voidpt_to_tensor the_namespace "tmpOp" tmpOp *)
     | (_, SUnop(uop, se1)) -> 
@@ -441,6 +489,30 @@ let translate (spes,sstmts) =
                           L.build_call zeros_func [| se1_ |] "zeros" the_namespace.builder
     | (_, SShape(se1)) -> let se1_ = genExpr the_namespace se1 in
                           L.build_call shape_func [| se1_ |] "shape" the_namespace.builder
+    | (_, SOnes(se1)) -> let se1_ = genExpr the_namespace se1 in
+                          L.build_call ones_func [| se1_ |] "ones" the_namespace.builder
+    | (_, SSum(se1)) -> let se1_ = genExpr the_namespace se1 in
+                          L.build_call sum_func [| se1_ |] "sum" the_namespace.builder
+    | (_, SAny(se1)) -> let se1_ = genExpr the_namespace se1 in
+                          L.build_call any_func [| se1_ |] "any" the_namespace.builder
+    | (_, SAll(se1)) -> let se1_ = genExpr the_namespace se1 in
+                          L.build_call all_func [| se1_ |] "all" the_namespace.builder
+    | (_, SAbs(se1)) -> let se1_ = genExpr the_namespace se1 in
+                          L.build_call abs_func [| se1_ |] "abs" the_namespace.builder
+    | (_, SLog(se1)) -> let se1_ = genExpr the_namespace se1 in
+                          L.build_call log_func [| se1_ |] "log" the_namespace.builder
+    | (_, SInt_Of(se1)) -> let se1_ = genExpr the_namespace se1 in
+                          L.build_call int_of_func [| se1_ |] "int_of" the_namespace.builder
+    | (_, SFloat_Of(se1)) -> let se1_ = genExpr the_namespace se1 in
+                          L.build_call float_of_func [| se1_ |] "float_of" the_namespace.builder
+    | (_, SFloor(se1)) -> let se1_ = genExpr the_namespace se1 in
+                          L.build_call floor_func [| se1_ |] "abs" the_namespace.builder
+    | (_, SCeil(se1)) -> let se1_ = genExpr the_namespace se1 in
+                          L.build_call ceil_func [| se1_ |] "ceil" the_namespace.builder
+    | (_, SRound(se1)) -> let se1_ = genExpr the_namespace se1 in
+                          L.build_call round_func [| se1_ |] "round" the_namespace.builder
+    | (_, SInverse(se1)) -> let se1_ = genExpr the_namespace se1 in
+                          L.build_call inverse_func [| se1_ |] "inverse" the_namespace.builder
     | (_, SCat(se1, se2, se3)) -> let se1_ = genExpr the_namespace se1 
                                   and se2_ = genExpr the_namespace se2 
                                   and se3_ = genExpr the_namespace se3 in

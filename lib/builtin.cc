@@ -604,3 +604,121 @@ extern "C" void *ones(void *a)
     check(x->ndim == 1 , "Dimension should be 1");
     return (void *)fromTensor(ones_t(toTensor(x)));
 }
+
+torch::Tensor floor_t(const torch::Tensor &x_t)
+{
+    return torch::floor(x_t);
+}
+
+
+extern "C" void *floor(void *a)
+{
+    tensor *x = (tensor *)a;
+
+    return (void *)fromTensor(floor_t(toTensor(x)));
+}
+
+torch::Tensor ceil_t(const torch::Tensor &x_t)
+{
+    return torch::ceil(x_t);
+}
+
+
+extern "C" void *ceil(void *a)
+{
+    tensor *x = (tensor *)a;
+
+    return (void *)fromTensor(ceil_t(toTensor(x)));
+}
+
+torch::Tensor round_t(const torch::Tensor &x_t)
+{
+    return torch::round(x_t);
+}
+
+
+extern "C" void *round(void *a)
+{
+    tensor *x = (tensor *)a;
+
+    return (void *)fromTensor(round_t(toTensor(x)));
+}
+
+torch::Tensor abs_t(const torch::Tensor &x_t)
+{
+    return torch::abs(x_t);
+}
+
+
+extern "C" void *abs(void *a)
+{
+    tensor *x = (tensor *)a;
+
+    return (void *)fromTensor(abs_t(toTensor(x)));
+}
+
+torch::Tensor log_t(const torch::Tensor &x_t)
+{
+    return torch::log(x_t);
+}
+
+
+extern "C" void *log(void *a)
+{
+    tensor *x = (tensor *)a;
+
+    return (void *)fromTensor(log_t(toTensor(x)));
+}
+
+torch::Tensor inverse_t(const torch::Tensor &x_t)
+{
+    return torch::inverse(x_t);
+}
+
+
+extern "C" void *inverse(void *a)
+{
+    tensor *x = (tensor *)a;
+
+    return (void *)fromTensor(inverse_t(toTensor(x)));
+}
+
+torch::Tensor int_of_t(const torch::Tensor &x_t)
+{
+    return x_t.toType(torch::kInt32);
+}
+
+extern "C" void *int_of(void *a)
+{
+    tensor *x = (tensor *)a;
+
+    return (void *)fromTensor(int_of_t(toTensor(x)));
+}
+
+torch::Tensor float_of_t(const torch::Tensor &x_t)
+{
+    return x_t.toType(torch::kFloat64);
+}
+
+extern "C" void *float_of(void *a)
+{
+    tensor *x = (tensor *)a;
+
+    return (void *)fromTensor(float_of_t(toTensor(x)));
+}
+
+torch::Tensor solve_t(const torch::Tensor &x_t, const torch::Tensor &y_t)
+{
+    auto z_t = torch::solve(x_t,y_t);
+    return std::get<0>(z_t);  // tbm
+}
+
+extern "C" void *solve(void *a, void *b)
+{
+    tensor *x = (tensor *)a;
+    tensor *y = (tensor *)b;
+
+    check(x->type == y->type, "Not consistent type\n");
+
+    return (void *)fromTensor(subtract_t(toTensor(x), toTensor(y)));
+}
