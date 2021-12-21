@@ -14,6 +14,7 @@ tensor *index_get_v(tensor *x, tensor *y)
 
     tensor *index = ((tensor **)y->data)[0];
     tensor **data = (tensor **)x->data;
+    check(index->type == 0, "Index must be integer");
     int32_t *ind_data = (int32_t *)index->data;
 
     dim = index->ndim;
@@ -54,6 +55,7 @@ extern "C" void *index_get(void *tena, void *inda)
 
     tensor **indices = (tensor **)indx->data;
     for (int i = 0; i < dim; i++) {
+        check(indices[i]->type == 0, "Index must be integer");
         indlist.push_back(toTensor(indices[i]).to(torch::kInt64));
     }
 
@@ -99,6 +101,7 @@ void index_put_v(tensor *x, tensor *y, tensor *z)
 
     tensor *index = ((tensor **)y->data)[0];
     tensor **data = (tensor **)x->data;
+    check(index->type == 0, "Index must be integer");
     int32_t *ind_data = (int32_t *)index->data;
 
     dim = index->ndim;
@@ -137,6 +140,7 @@ extern "C" void index_put(void *tena, void *inda, void *ntena)
 
     tensor **indices = (tensor **)indx->data;
     for (int i = 0; i < dim; i++) {
+        check(indices[i]->type == 0, "Index must be integer");
         indlist.push_back(toTensor(indices[i]).to(torch::kInt64));
     }
 
