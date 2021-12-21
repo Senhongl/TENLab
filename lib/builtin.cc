@@ -577,13 +577,17 @@ extern "C" void *zeros(void *a)
 torch::Tensor sum_t(const torch::Tensor &x_t)
 {
     torch::Tensor z_t = torch::sum(x_t);
+    std::cout << x_t.options() << std::endl;    
     return z_t;
 }
 
 extern "C" void *sum(void *a)
 {
     tensor *x = (tensor *)a;
-    return (void *)fromTensor(sum_t(toTensor(x)));
+    if (x->type == 0)
+        return (void *)fromTensor(sum_t(toTensor(x)).toType(torch::kInt32));
+    else
+        return (void *)fromTensor(sum_t(toTensor(x)).toType(torch::kFloat64));
 }
 
 torch::Tensor ones_t(const torch::Tensor &x_t)
@@ -605,76 +609,71 @@ extern "C" void *ones(void *a)
     return (void *)fromTensor(ones_t(toTensor(x)));
 }
 
-torch::Tensor floor_t(const torch::Tensor &x_t)
+torch::Tensor tensor_floor_t(const torch::Tensor &x_t)
 {
     return torch::floor(x_t);
 }
 
 
-extern "C" void *floor(void *a)
+extern "C" void *tensor_floor(void *a)
 {
     tensor *x = (tensor *)a;
 
-    return (void *)fromTensor(floor_t(toTensor(x)));
+    return (void *)fromTensor(tensor_floor_t(toTensor(x)));
 }
 
-torch::Tensor ceil_t(const torch::Tensor &x_t)
+torch::Tensor tensor_ceil_t(const torch::Tensor &x_t)
 {
     return torch::ceil(x_t);
 }
 
-
-extern "C" void *ceil(void *a)
+extern "C" void *tensor_ceil(void *a)
 {
     tensor *x = (tensor *)a;
 
-    return (void *)fromTensor(ceil_t(toTensor(x)));
+    return (void *)fromTensor(tensor_ceil_t(toTensor(x)));
 }
 
-torch::Tensor round_t(const torch::Tensor &x_t)
+torch::Tensor tensor_round_t(const torch::Tensor &x_t)
 {
     return torch::round(x_t);
 }
 
-
-extern "C" void *round(void *a)
+extern "C" void *tensor_round(void *a)
 {
     tensor *x = (tensor *)a;
 
-    return (void *)fromTensor(round_t(toTensor(x)));
+    return (void *)fromTensor(tensor_round_t(toTensor(x)));
 }
 
-torch::Tensor abs_t(const torch::Tensor &x_t)
+torch::Tensor tensor_abs_t(const torch::Tensor &x_t)
 {
     return torch::abs(x_t);
 }
 
-
-extern "C" void *abs(void *a)
+extern "C" void *tensor_abs(void *a)
 {
     tensor *x = (tensor *)a;
 
-    return (void *)fromTensor(abs_t(toTensor(x)));
+    return (void *)fromTensor(tensor_abs_t(toTensor(x)));
 }
 
-torch::Tensor log_t(const torch::Tensor &x_t)
+torch::Tensor tensor_log_t(const torch::Tensor &x_t)
 {
     return torch::log(x_t);
 }
 
-
-extern "C" void *log(void *a)
+extern "C" void *tensor_log(void *a)
 {
     tensor *x = (tensor *)a;
 
-    return (void *)fromTensor(log_t(toTensor(x)));
+    return (void *)fromTensor(tensor_log_t(toTensor(x)));
 }
 
 torch::Tensor inverse_t(const torch::Tensor &x_t)
 {
     return torch::inverse(x_t);
 }
-
 
 extern "C" void *inverse(void *a)
 {

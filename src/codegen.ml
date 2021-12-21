@@ -284,26 +284,26 @@ let translate (spes,sstmts) =
     L.function_type i8ptr_t [| i8ptr_t |] in
   let all_func : L.llvalue = 
     L.declare_function "all" all_t the_module in
-  let abs_t : L.lltype = 
+  let tensor_abs_t : L.lltype = 
     L.function_type i8ptr_t [| i8ptr_t |] in
-  let abs_func : L.llvalue = 
-    L.declare_function "abs" abs_t the_module in
-  let log_t : L.lltype = 
+  let tensor_abs_func : L.llvalue = 
+    L.declare_function "tensor_abs" tensor_abs_t the_module in
+  let tensor_log_t : L.lltype = 
     L.function_type i8ptr_t [| i8ptr_t |] in
-  let log_func : L.llvalue = 
-    L.declare_function "log" log_t the_module in
-  let floor_t : L.lltype = 
+  let tensor_log_func : L.llvalue = 
+    L.declare_function "tensor_log" tensor_log_t the_module in
+  let tensor_floor_t : L.lltype = 
     L.function_type i8ptr_t [| i8ptr_t |] in
-  let floor_func : L.llvalue = 
-    L.declare_function "floor" floor_t the_module in
-  let ceil_t : L.lltype = 
+  let tensor_floor_func : L.llvalue = 
+    L.declare_function "tensor_floor" tensor_floor_t the_module in
+  let tensor_ceil_t : L.lltype = 
     L.function_type i8ptr_t [| i8ptr_t |] in
-  let ceil_func : L.llvalue = 
-    L.declare_function "ceil" ceil_t the_module in
-  let round_t : L.lltype = 
+  let tensor_ceil_func : L.llvalue = 
+    L.declare_function "tensor_ceil" tensor_ceil_t the_module in
+  let tensor_round_t : L.lltype = 
     L.function_type i8ptr_t [| i8ptr_t |] in
-  let round_func : L.llvalue = 
-    L.declare_function "round" round_t the_module in
+  let tensor_round_func : L.llvalue = 
+    L.declare_function "tensor_round" tensor_round_t the_module in
   let int_of_t : L.lltype = 
     L.function_type i8ptr_t [| i8ptr_t |] in
   let int_of_func : L.llvalue = 
@@ -498,19 +498,19 @@ let translate (spes,sstmts) =
     | (_, SAll(se1)) -> let se1_ = genExpr the_namespace se1 in
                           L.build_call all_func [| se1_ |] "all" the_namespace.builder
     | (_, SAbs(se1)) -> let se1_ = genExpr the_namespace se1 in
-                          L.build_call abs_func [| se1_ |] "abs" the_namespace.builder
+                          L.build_call tensor_abs_func [| se1_ |] "abs" the_namespace.builder
     | (_, SLog(se1)) -> let se1_ = genExpr the_namespace se1 in
-                          L.build_call log_func [| se1_ |] "log" the_namespace.builder
+                          L.build_call tensor_log_func [| se1_ |] "log" the_namespace.builder
     | (_, SInt_Of(se1)) -> let se1_ = genExpr the_namespace se1 in
                           L.build_call int_of_func [| se1_ |] "int_of" the_namespace.builder
     | (_, SFloat_Of(se1)) -> let se1_ = genExpr the_namespace se1 in
                           L.build_call float_of_func [| se1_ |] "float_of" the_namespace.builder
     | (_, SFloor(se1)) -> let se1_ = genExpr the_namespace se1 in
-                          L.build_call floor_func [| se1_ |] "abs" the_namespace.builder
+                          L.build_call tensor_floor_func [| se1_ |] "abs" the_namespace.builder
     | (_, SCeil(se1)) -> let se1_ = genExpr the_namespace se1 in
-                          L.build_call ceil_func [| se1_ |] "ceil" the_namespace.builder
+                          L.build_call tensor_ceil_func [| se1_ |] "ceil" the_namespace.builder
     | (_, SRound(se1)) -> let se1_ = genExpr the_namespace se1 in
-                          L.build_call round_func [| se1_ |] "round" the_namespace.builder
+                          L.build_call tensor_round_func [| se1_ |] "round" the_namespace.builder
     | (_, SInverse(se1)) -> let se1_ = genExpr the_namespace se1 in
                           L.build_call inverse_func [| se1_ |] "inverse" the_namespace.builder
     | (_, SCat(se1, se2, se3)) -> let se1_ = genExpr the_namespace se1 

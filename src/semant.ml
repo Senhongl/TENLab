@@ -95,6 +95,18 @@ let rec check_expr symbol_table function_table = function
 | Print(e) -> (SVoidTup, SPrint(check_expr symbol_table function_table e))
 | Shape(e) -> (SVoidTup, SShape(check_expr symbol_table function_table e))
 | Zeros(e) -> (SVoidTup, SZeros(check_expr symbol_table function_table e))
+| Ones(e) -> (SVoidTup, SZeros(check_expr symbol_table function_table e))
+| Sum(e) -> (SVoidTup, SSum(check_expr symbol_table function_table e))
+| Any(e) -> (SVoidTup, SAny(check_expr symbol_table function_table e))
+| All(e) -> (SVoidTup, SAll(check_expr symbol_table function_table e))
+| Floor(e) -> (SVoidTup, SFloor(check_expr symbol_table function_table e))
+| Ceil(e) -> (SVoidTup, SCeil(check_expr symbol_table function_table e))
+| Round(e) -> (SVoidTup, SRound(check_expr symbol_table function_table e))
+| Int_Of(e) -> (SVoidTup, SInt_Of(check_expr symbol_table function_table e))
+| Float_Of(e) -> (SVoidTup, SFloat_Of(check_expr symbol_table function_table e))
+| Abs(e) -> (SVoidTup, SAbs(check_expr symbol_table function_table e))
+| Log(e) -> (SVoidTup, SLog(check_expr symbol_table function_table e))
+| Len(e) -> (SVoidTup, SLen(check_expr symbol_table function_table e))
 | Cat(e1, e2, e3) -> (SVoidTup, SCat(check_expr symbol_table function_table e1, check_expr symbol_table function_table e2, check_expr symbol_table function_table e3))
 | FuncCall(e1, e2) -> let _ = check_expr symbol_table function_table e1 in
                       let e2_ = List.map (check_expr symbol_table function_table) e2 in
