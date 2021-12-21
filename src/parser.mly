@@ -212,6 +212,7 @@ expr:
 | VAR vtensor { VarTs($2) }
 | tensor { Tensor($1) }
 | asexpr { ASexpr($1) }
+| STRING_LITERAL { StringLit($1) }
 // Expression within parenthesis
 | LEFT_PARENTHESIS expr RIGHT_PARENTHESIS { $2 }
 // Binary expression

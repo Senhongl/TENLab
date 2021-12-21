@@ -22,7 +22,6 @@ type uop = Not | Neg | Transpose
 type literal =
   IntLit of int
 | FloatLit of float
-| StringLit of string
 
 type operator_name =
   AddSymbol
@@ -34,6 +33,7 @@ type expr =
 | Tensor of tensor
 | VarTs of expr list
 | ASexpr of asexpr
+| StringLit of string
 | Binop of expr * bop * expr
 | Unop of uop * expr
 | Range of expr * expr * expr
@@ -132,7 +132,7 @@ let string_of_uop = function
 let string_of_lit = function
   IntLit(l) -> string_of_int l
 | FloatLit(l) -> string_of_float l
-| StringLit(l) -> "\"" ^ l ^ "\""
+(*| StringLit(l) -> "\"" ^ l ^ "\""*)
 
 let rec string_of_tensor = function
   EmptyTensor -> ""

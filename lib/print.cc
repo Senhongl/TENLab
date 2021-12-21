@@ -23,6 +23,8 @@ extern "C" void print(void *a)
     if (x->type == 3) {
         print_var(x);
         printf("\n");
+    } else if (x->type == 2) {
+        printf("%s\n", (char *)x->data);
     }
     else
         std::cout << toTensor(x) << std::endl;

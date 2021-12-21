@@ -11,4 +11,5 @@ def preorder(t) {
     return 1;
 }
 
+print("Pre-Order");
 preorder(tree);

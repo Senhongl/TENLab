@@ -14,6 +14,7 @@ and sx =
 | STensor of literal array
 | SVtensor of sexpr list
 | SASexpr of sasexpr
+| SStringLit of string
 | SBinop of sexpr * bop * sexpr
 | SUnop of uop * sexpr
 | SRange of sexpr * sexpr * sexpr

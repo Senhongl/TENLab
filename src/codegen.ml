@@ -61,6 +61,13 @@ let gen_array ltype arr =
         | FloatLit(x) -> L.const_float ltype x)
     done; newarray
   
+let gen_char ltype arr = 
+  let n = Array.length arr in
+  let newarray = Array.make (n+1) (L.const_int ltype 0) in
+  for i = 0 to (Array.length arr)-1 do
+      newarray.(i) <-  L.const_int ltype (int_of_char arr.(i))
+  done; newarray
+
 let gen_dim ltype arr = 
   let n = Array.length arr in
   let newarray = Array.make n (L.const_int ltype 0) in
@@ -380,6 +387,7 @@ let translate (spes,sstmts) =
           INT_Tensor -> build_tensor the_namespace int_t int_t (gen_value i8_t 0) (gen_value i8_t n) (gen_dim i8_t d) (gen_array int_t y)
         | FLOAT_Tensor -> build_tensor the_namespace float_t i64_t (gen_value i8_t 1) (gen_value i8_t n) (gen_dim i8_t d) (gen_array float_t y)
         )
+    | (_, SStringLit(s)) -> build_tensor the_namespace i8_t i8_t (gen_value i8_t 2) (gen_value i8_t 1) (gen_dim i8_t [| String.length s |]) (gen_char i8_t (Array.of_seq(String.to_seq s)))
     | (_, SVtensor(x)) -> 
       let x_ = Array.of_list(List.map (genExpr the_namespace) x) in
             let dims = gen_dim i8_t [|Array.length(x_)|] in
