@@ -1,5 +1,4 @@
 (* Semantic checking for the TENLab compiler *)
-
 open Ast
 open Sast
 
@@ -22,8 +21,8 @@ let rec equal_dim d1 d2=
 
 let rec check_tensor = function
   Tensor0(x) -> (match x with
-    IntLit(y) -> (TensorTup(INT_Tensor, 0, [-1]), [|x|])
-  | FloatLit(y) -> (TensorTup(FLOAT_Tensor, 0, [-1]), [|x|]))
+    IntLit(_) -> (TensorTup(INT_Tensor, 0, [-1]), [|x|])
+  | FloatLit(_) -> (TensorTup(FLOAT_Tensor, 0, [-1]), [|x|]))
 | LRTensor(x) -> 
     (match check_tensor(x) with
       (TensorTup(t, nd, d0::d_), y) -> (TensorTup(t, nd+1, -1::-d0::d_), y)
@@ -33,7 +32,7 @@ let rec check_tensor = function
     let tdy1 = check_tensor(x1) in
     let tdy2 = check_tensor(x2) in
       (match tdy1, tdy2 with
-        (TensorTup(t1, nd1, d10::d1_), y1), (TensorTup(t2, nd2, d20::d2_), y2) -> 
+        (TensorTup(t1, nd1, d10::d1_), y1), (TensorTup(t2, _, d20::d2_), y2) -> 
           if t1 = t2 && equal_dim d1_ d2_ then 
             (TensorTup(t1, nd1+1, -1::-(d10 + d20)::d1_), Array.append y1 y2)
           else if t1 <> t2 then raise (Failure("invalid type"))
@@ -43,7 +42,7 @@ let rec check_tensor = function
     let tdy1 = check_tensor(x1) in
     let tdy2 = check_tensor(x2) in
       (match tdy1, tdy2 with
-        (TensorTup(t1, nd1, d10::d1_), y1), (TensorTup(t2, nd2, d20::d2_), y2) -> 
+        (TensorTup(t1, nd1, d10::d1_), y1), (TensorTup(t2, _, d20::d2_), y2) -> 
           if t1 = t2 && equal_dim d1_ d2_ then 
             (TensorTup(t1, nd1, (d10 + d20)::d1_), Array.append y1 y2)
           else if t1 <> t2 then raise (Failure("invalid type"))
@@ -78,28 +77,30 @@ let rec check_expr symbol_table function_table = function
   let x3_ = check_expr symbol_table function_table x3 in
     (SVoidTup, SRange(x1_, x2_, x3_))
 | Tensor(x) -> (match check_tensor(x) with 
-  | (TensorTup(t, n, d::d_), y) -> (STensorTup(t, n, Array.of_list d_), STensor(y))
+  | (TensorTup(t, n, _::d_), y) -> (STensorTup(t, n, Array.of_list d_), STensor(y))
   | (_, _) -> raise (Failure( "ought not occur")))
 | VarTs(x) -> 
       let x_ = List.map (check_expr symbol_table function_table) x in
               (SVoidTup, SVtensor(x_))
 | StringLit(s) -> (SVoidTup, SStringLit(s))
 | ASexpr(x) -> (match x with 
-  | Id(id) -> if StringHash.mem function_table id then StringHash.remove function_table id;
-              if StringHash.mem symbol_table id then (SVoidTup, SASexpr(Id(id)))
+  | Identifier(id) -> if StringHash.mem function_table id then StringHash.remove function_table id;
+              if StringHash.mem symbol_table id then (SVoidTup, SASexpr(Identifier(id)))
               else raise (Failure( "variable " ^ id ^ " not defined"))
-  | Idind(id, x) -> 
+  | IdentifierInd(id, x) -> 
       let x_ = List.map (check_expr symbol_table function_table) x in
                     if StringHash.mem function_table id then StringHash.remove function_table id;
-                    if StringHash.mem symbol_table id then (SVoidTup, SASexpr(Idind(id, x_)))
+                    if StringHash.mem symbol_table id then (SVoidTup, SASexpr(IdentifierInd(id, x_)))
                     else raise (Failure( "variable " ^ id ^ " not defined")))
 | Print(e) -> (SVoidTup, SPrint(check_expr symbol_table function_table e))
 | Shape(e) -> (SVoidTup, SShape(check_expr symbol_table function_table e))
 | Zeros(e) -> (SVoidTup, SZeros(check_expr symbol_table function_table e))
 | Cat(e1, e2, e3) -> (SVoidTup, SCat(check_expr symbol_table function_table e1, check_expr symbol_table function_table e2, check_expr symbol_table function_table e3))
-| FuncCall(e1, e2) -> let e1_ = check_expr symbol_table function_table e1 in
+| FuncCall(e1, e2) -> let _ = check_expr symbol_table function_table e1 in
                       let e2_ = List.map (check_expr symbol_table function_table) e2 in
-                      let FId(id) = e1 in
+                      let id = match e1 with
+                          FId(id) -> id
+                        | _ -> raise (Failure("invalid function id")) in
                       let argc = StringHash.find function_table id in
                       if argc <> List.length(e2) then raise (Failure("the number of arguments mismatch"))
                       else (SVoidTup, SFuncCall(id, e2_))
@@ -111,12 +112,12 @@ let rec check_stmt symbol_table function_table = function
 | Assign(s, e2) -> 
                       let sexpr = check_expr symbol_table function_table e2 in
       (match s with
-            Id(str1) ->
-                      ignore(StringHash.add symbol_table str1 sexpr); SAssign(Id(str1), sexpr)
-          | Idind(id, x) -> 
+            Identifier(str1) ->
+                      ignore(StringHash.add symbol_table str1 sexpr); SAssign(Identifier(str1), sexpr)
+          | IdentifierInd(id, x) -> 
                 let x_ = List.map (check_expr symbol_table function_table) x in
                       if StringHash.mem function_table id then StringHash.remove function_table id;
-                      if StringHash.mem symbol_table id then SAssign(Idind(id, x_), sexpr)
+                      if StringHash.mem symbol_table id then SAssign(IdentifierInd(id, x_), sexpr)
                       else raise (Failure( "variable " ^ id ^ " not defined"))
       )
 | IfStmt(e1, s1, s2) -> let local_symbol_table = StringHash.copy symbol_table in
@@ -145,10 +146,10 @@ let rec check_stmt symbol_table function_table = function
                               SFuncDecl(str1, str2, s1_)
 | Return(e1) -> let e1_ = check_expr symbol_table function_table e1 in
                 SReturn(e1_)
-| Break -> SBreak
+(* | Break -> SBreak
 | Continue -> SContinue
 | Exit(e1) -> let e1_ = check_expr symbol_table function_table e1 in
-              SExit(e1_)
+              SExit(e1_) *)
 | PEInvoke(s1) -> let z = StringHash.find pe_table s1 in
 if (z=1) then SPEInvoke(s1) else raise (Failure("PE does not exist"))
 | PEEnd(s1) -> let z = StringHash.find pe_table s1 in
@@ -170,6 +171,7 @@ let oprewrite = function
   | "__+__" -> "ADD"
   | "__-__" -> "SUB"
   | "__*__" -> "MUL"
+  | _ -> raise (Failure("invalid operator"))
 in 
 {
   soperator = oprewrite po.operator;
@@ -189,6 +191,7 @@ match spo.soperator with
 | "MUL" -> {sadd = pe.sadd;
             sminus = pe.sminus;
             smulti = SPO(spo);}
+| _ -> raise (Failure("invalid operator"))
 
 let check_pe (name, pos) =
 ignore(StringHash.add pe_table name 1);

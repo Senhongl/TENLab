@@ -61,10 +61,10 @@ rule tokenize = parse
 | "for" { FOR }
 | "while" { WHILE }
 | "in" { IN }
-| "continue" { CONTINUE }
-| "break" { BREAK }
+(* | "continue" { CONTINUE }
+| "break" { BREAK } *)
 | "return" { RETURN }
-| "exit" { EXIT }
+(* | "exit" { EXIT } *)
 | "def" { DEFINE }
 | "int" { INT }
 | "float" { FLOAT }

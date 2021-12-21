@@ -10,6 +10,11 @@ torch::Tensor subtract_t(const torch::Tensor &x_t, const torch::Tensor &y_t)
     return z_t;
 }
 
+torch::Tensor negative_t(const torch::Tensor &x_t)
+{
+    return torch::neg(x_t);
+}
+
 extern "C" void *subtract(void *a, void *b)
 {
     tensor *x = (tensor *)a;
@@ -27,4 +32,11 @@ extern "C" void *subtract(void *a, void *b)
     check(flag == true, "Not consistent dimension\n");
 
     return (void *)fromTensor(subtract_t(toTensor(x), toTensor(y)));
+}
+
+extern "C" void *negative(void *a)
+{
+    tensor *x = (tensor *)a;
+
+    return (void *)fromTensor(negative_t(toTensor(x)));
 }

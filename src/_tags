@@ -2,7 +2,8 @@
 true: package(llvm), package(llvm.analysis)
 
 # Enable almost all compiler warnings
-true : warn(+a-4)
+# ignore warning 42, 70, 45 and 4
+true : warn(+a-4-42-70-45)
 
 # Instruct ocamlbuild to ignore the "printbig.o" file when it's building
 "builtin.o": not_hygienic

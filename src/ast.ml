@@ -1,6 +1,5 @@
 (************ Abstract Syntax Tree types for TENLab ************)
 
-
 type bop =
 (* Arithmetic operators*)
 Add | Sub | Mul | DotMul | Div | Pow | DotPow | Mod | FlrDiv
@@ -11,7 +10,7 @@ Add | Sub | Mul | DotMul | Div | Pow | DotPow | Mod | FlrDiv
 (* Logical operators *)
 | And | Or
 
-type tensortype = INT_Tensor | FLOAT_Tensor | STRING_Tensor | VAR_Tensor
+type tensortype = INT_Tensor | FLOAT_Tensor
 
 type dimtype = TensorTup of tensortype * int * int list | VoidTup
 
@@ -63,8 +62,8 @@ type expr =
 | FuncCall of expr * expr list
 
 and asexpr = 
-  Id of string
-| Idind of string * expr list
+  Identifier of string
+| IdentifierInd of string * expr list
 
 (* Tensor *)
 and tensor =
@@ -89,9 +88,9 @@ type stmt =
 | PEEnd of string
 (* Keyword statement *)
 | Return of expr
-| Break
+(* | Break
 | Continue
-| Exit of expr
+| Exit of expr *)
 
 type pofunc = {
   operator : string;
@@ -103,7 +102,7 @@ type pofunc = {
 
 type program = (string * pofunc list) list * stmt list
 
-
+(* 
 let string_of_bop = function
   Add -> "+"
 | Sub -> "-"
@@ -212,4 +211,6 @@ let string_of_pe (str1, p2) =
 
 let string_of_program (pes,stmts) =
     String.concat "" (List.map string_of_pe pes) ^
-    String.concat ";\n" (List.map string_of_stmt stmts) ^ "\n"
+    String.concat ";\n" (List.map string_of_stmt stmts) ^ "\n" *)
+
+let string_of_program (_, _) = "TODO"

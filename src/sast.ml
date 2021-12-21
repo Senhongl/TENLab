@@ -43,8 +43,8 @@ and sx =
 | SFuncCall of string * sexpr list
 
 and sasexpr = 
-  Id of string
-| Idind of string * sexpr list
+  Identifier of string
+| IdentifierInd of string * sexpr list
 
 type sstmt =
   SEmptyStmt
@@ -59,9 +59,9 @@ type sstmt =
 | SPEInvoke of string
 | SPEEnd of string
 | SReturn of sexpr
-| SBreak
+(* | SBreak
 | SContinue
-| SExit of sexpr
+| SExit of sexpr *)
 
 type spofunc = {
   soperator : string;

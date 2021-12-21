@@ -11,7 +11,6 @@ http://llvm.moe/
 http://llvm.moe/ocaml/
 
 *)
-
 module L = Llvm
 open Ast
 open Sast 
@@ -48,35 +47,6 @@ type pe = {
 
 exception E of string (* debug information *)
 
-let gen_array ltype arr =
-    let n = Array.length arr in
-    let newarray = Array.make n 
-      (match ltype with
-        int_t -> L.const_int ltype 0
-      | float_t -> L.const_float ltype 0.) in
-    for i = 0 to (Array.length arr)-1 do
-      newarray.(i) <-  
-        (match arr.(i) with
-          IntLit(x) -> L.const_int ltype x
-        | FloatLit(x) -> L.const_float ltype x)
-    done; newarray
-  
-let gen_char ltype arr = 
-  let n = Array.length arr in
-  let newarray = Array.make (n+1) (L.const_int ltype 0) in
-  for i = 0 to (Array.length arr)-1 do
-      newarray.(i) <-  L.const_int ltype (int_of_char arr.(i))
-  done; newarray
-
-let gen_dim ltype arr = 
-  let n = Array.length arr in
-  let newarray = Array.make n (L.const_int ltype 0) in
-  for i = 0 to (Array.length arr)-1 do
-      newarray.(i) <-  L.const_int ltype arr.(i)
-  done; newarray
-
-let gen_value ltype value = L.const_int ltype value
-
 let translate (spes,sstmts) =
   let global_symbol_table = StringHash.create 10 in
   let global_function_table = StringHash.create 10 in
@@ -93,9 +63,7 @@ let translate (spes,sstmts) =
   and i64_t     = L.i64_type      context
   and void_t    = L.void_type     context  in
   let i8ptr_t   = L.pointer_type  i8_t
-  and tensor_t = L.named_struct_type context "tensor_t" 
-  and int_array_t = L.array_type int_t  
-  and float_array_t = L.array_type float_t in
+  and tensor_t = L.named_struct_type context "tensor_t" in
   let i8ptr_ptr_t = L.pointer_type i8ptr_t in
   let map_func_t = L.function_type i8ptr_t [|i8ptr_t; i8ptr_t|] 
   and reduce_func_t = L.function_type i8ptr_t [|i8ptr_ptr_t|] in
@@ -104,11 +72,36 @@ let translate (spes,sstmts) =
   and reduce_func_ptr_t = L.pointer_type reduce_func_t in
         L.struct_set_body tensor_t [| i8_t; i8_t; i8ptr_t; i8ptr_t; i8_t |] false;
 
-  let tensor_pt = L.pointer_type  tensor_t in
-  let int_pt = L.pointer_type int_t in
   (* init *)
   let function_type = L.function_type i8_t [||] in
   let main_function = L.define_function "main" function_type the_module in
+
+  let gen_array ltype arr =
+      let n = Array.length arr in
+      let newarray = if ltype = int_t then Array.make n (L.const_int int_t 0)
+                     else Array.make n (L.const_int float_t 0) in
+      for i = 0 to (Array.length arr)-1 do
+        newarray.(i) <-  
+          (match arr.(i) with
+            IntLit(x) -> L.const_int ltype x
+          | FloatLit(x) -> L.const_float ltype x)
+      done; newarray in
+    
+  let gen_char ltype arr = 
+    let n = Array.length arr in
+    let newarray = Array.make (n+1) (L.const_int ltype 0) in
+    for i = 0 to (Array.length arr)-1 do
+        newarray.(i) <-  L.const_int ltype (int_of_char arr.(i))
+    done; newarray in
+
+  let gen_dim ltype arr = 
+    let n = Array.length arr in
+    let newarray = Array.make n (L.const_int ltype 0) in
+    for i = 0 to (Array.length arr)-1 do
+        newarray.(i) <-  L.const_int ltype arr.(i)
+    done; newarray in
+
+  let gen_value ltype value = L.const_int ltype value in
 
   (* set local pointer *)
   let set_localptr local_builder symbol_table args_name args_val =
@@ -120,7 +113,6 @@ let translate (spes,sstmts) =
 
   (* create a new tensor *) 
   let build_tensor the_namespace ltype itype dtype ndims dims data =
-    let size = Array.length data in
     let tensor = L.build_malloc tensor_t "raw_tensor" the_namespace.builder in
     (* store dtype *)
     let dtypeptr = L.build_struct_gep tensor 0 "dtype" the_namespace.builder in
@@ -164,14 +156,6 @@ let translate (spes,sstmts) =
     L.build_bitcast tensor i8ptr_t "tensor" the_namespace.builder
   in
 
-  let get_tensor_length tensor the_namespace =
-    let tensorptr = L.build_bitcast tensor tensor_pt "tensorptr" the_namespace.builder in
-    let ndimsptr = L.build_struct_gep tensorptr 2 "ndimsptr" the_namespace.builder in
-    let ndimsptr_as_intptr = L.build_bitcast ndimsptr int_pt "ndimsptr_as_intptr" the_namespace.builder in
-    let length = L.build_load ndimsptr_as_intptr "length" the_namespace.builder in
-    length
-  in
-
   (* add terminal for function definition *)
   let add_terminal builder instr = 
       match L.block_terminator (L.insertion_block builder) with  
@@ -187,6 +171,10 @@ let translate (spes,sstmts) =
     L.function_type i8ptr_t [| i8ptr_t; i8ptr_t |] in
   let subtract_func : L.llvalue = 
     L.declare_function "subtract" subtract_t the_module in
+  let negative_t : L.lltype =
+    L.function_type i8ptr_t [| i8ptr_t |] in
+  let negative_func : L.llvalue =
+    L.declare_function "negative" negative_t the_module in
   let mult_t : L.lltype = 
     L.function_type i8ptr_t [| i8ptr_t; i8ptr_t |] in
   let mult_func : L.llvalue = 
@@ -311,11 +299,6 @@ let translate (spes,sstmts) =
   L.function_type void_t [| i8ptr_t |] in
   let decrease_rc: L.llvalue =
   L.declare_function "decrease_rc" decrease_rc_t the_module in
-  (* just for debug *)
-  let print_int_t : L.lltype =
-  L.function_type void_t [| int_t |] in
-  let print_int : L.llvalue = 
-  L.declare_function "print_int" print_int_t the_module in
 
   let lookup id the_namespace = if StringHash.mem the_namespace.symbol_table id then StringHash.find the_namespace.symbol_table id
                                 else if the_namespace.global then let init = L.define_global id (L.const_pointer_null i8ptr_t) the_module in
@@ -394,7 +377,8 @@ let translate (spes,sstmts) =
       let se1_ = genExpr the_namespace se1 in
       (match uop with
         Transpose -> L.build_call transpose_func
-      |  Not -> L.build_call logicalnot_func
+      | Not -> L.build_call logicalnot_func
+      | Neg -> L.build_call negative_func
       ) [| se1_ |] "tmpOp" the_namespace.builder
     | (STensorTup(t, n, d), STensor(y)) ->
         (match t with 
@@ -426,8 +410,8 @@ let translate (spes,sstmts) =
                              Array.append y1 y2
       in let y = gen_vartensor(x) in y.(0)*)
     | (_, SASexpr(x)) -> (match x with 
-        Id(id) -> L.build_load (lookup id the_namespace) id the_namespace.builder
-      | Idind(s, x) -> 
+        Identifier(id) -> L.build_load (lookup id the_namespace) id the_namespace.builder
+      | IdentifierInd(s, x) -> 
         let x_ = Array.of_list(List.map (genExpr the_namespace) x) in
             let dims = gen_dim i8_t [|Array.length(x_)|] in
             let data = x_ in
@@ -461,7 +445,7 @@ let translate (spes,sstmts) =
                                   and se2_ = genExpr the_namespace se2 
                                   and se3_ = genExpr the_namespace se3 in
                           L.build_call cat_func [| se1_ ; se2_ ; se3_ |] "cat" the_namespace.builder
-    | (_, SFuncCall(str1, se1)) -> let (the_function, the_builder) = StringHash.find the_namespace.function_table str1 in
+    | (_, SFuncCall(str1, se1)) -> let (the_function, _) = StringHash.find the_namespace.function_table str1 in
                                    let argv = List.map (genExpr the_namespace) se1 in
                                    L.build_call the_function (Array.of_list argv) "ret" the_namespace.builder
     | (_, _) -> gen_value i8ptr_t 0 in
@@ -479,22 +463,22 @@ let translate (spes,sstmts) =
     | SExpr(se) -> ignore(genExpr the_namespace se); the_namespace 
     | SAssign(s, se1) -> 
             (match s with 
-              Id(id) ->
+              Identifier(id) ->
                           let rhs = genExpr the_namespace se1 in
                           let lhs = lookup id the_namespace in
                           let lhsptr = L.build_load lhs "lhsptr" the_namespace.builder in
-                          (* ignore(L.build_call increase_rc [| rhs |] "" the_namespace.builder);
-                          ignore(L.build_call decrease_rc [| lhsptr |] "" the_namespace.builder); *)
+                          ignore(L.build_call increase_rc [| rhs |] "" the_namespace.builder);
+                          ignore(L.build_call decrease_rc [| lhsptr |] "" the_namespace.builder);
                           ignore(L.build_store rhs lhs the_namespace.builder);
                           the_namespace
-            | Idind(s, x) ->
+            | IdentifierInd(s, x) ->
                           let rhs = genExpr the_namespace se1 in
                           let x_ = Array.of_list(List.map (genExpr the_namespace) x) in
                             let dims = gen_dim i8_t [|Array.length(x_)|] in
                             let data = x_ in
                             let xptr = build_tensor the_namespace i8ptr_t i64_t (gen_value i8_t 3) (gen_value i8_t 1) dims data in
                             let sptr = L.build_load (lookup s the_namespace) s the_namespace.builder in
-                            L.build_call index_put [|sptr; xptr; rhs|] "" the_namespace.builder;
+                            ignore(L.build_call index_put [|sptr; xptr; rhs|] "" the_namespace.builder);
                             the_namespace
                   (*(match x with
                           (nlist, indlist) -> let rec gen_indlist = function
@@ -518,7 +502,7 @@ let translate (spes,sstmts) =
                              List.iter2 (set_localptr the_builder local_symbol_table) str2 argv;
                              let build_return b = L.build_ret (L.const_pointer_null i8ptr_t) b in
                              let local_namespace = {symbol_table = local_symbol_table; function_table = local_function_table; func = the_function; builder = the_builder; global = false; env = the_namespace.env} in
-                             let local_namespace = List.fold_left stmt local_namespace ss1 in
+                             ignore(List.fold_left stmt local_namespace ss1);
                              ignore(add_terminal the_builder build_return);
                              the_namespace (* return the main namespace *)
     | SIfStmt(se1, ss1, ss2) -> let se1_ = genExpr the_namespace se1 in
@@ -577,20 +561,12 @@ let translate (spes,sstmts) =
                                   ignore(L.build_store (L.const_int int_t (0)) idxptr the_namespace.builder);
                                   let tensor = genExpr the_namespace se1 in
                                   let size = L.build_call len [| tensor |] "length" the_namespace.builder in
-                                  (* ignore(L.build_call print_int [| size |] "" the_namespace.builder); *)
                                   let pred_bb = L.append_block context "for" the_namespace.func in
                                   ignore(L.build_br pred_bb the_namespace.builder);
                                   let pred_builder = L.builder_at_end context pred_bb in
-                                  let local_namespace = {symbol_table = the_namespace.symbol_table; 
-                                                        function_table = the_namespace.function_table;
-                                                        func = the_namespace.func; 
-                                                        builder = pred_builder;
-                                                        global = the_namespace.global;
-                                                        env = the_namespace.env} in
                                   let indicator = L.build_load idxptr "idx" pred_builder in
                                   let new_indicator = L.build_add indicator (L.const_int int_t 1) "new_idx"  pred_builder in
                                   ignore(L.build_store new_indicator idxptr pred_builder);
-                                  (* ignore(L.build_call print_int [| indicator |] "" pred_builder); *)
                                   let cond = (L.build_icmp L.Icmp.Sgt) new_indicator size "condition" pred_builder in
 
                                   let body_bb = L.append_block context "for_body" the_namespace.func in
@@ -601,11 +577,9 @@ let translate (spes,sstmts) =
                                                         builder = body_builder;
                                                         global = the_namespace.global;
                                                         env = the_namespace.env} in
-                                  (* ignore(L.build_call print_int [| L.const_int int_t 3 |] "" pred_builder); *)
                                   (* let indicator_as_tensor = build_tensor local_namespace int_t int_t (gen_value i8_t 0) (gen_value i8_t 1) [| gen_value i8_t 1 |] [| indicator |] in *)
                                   let str1ptr = lookup str1 local_namespace in
                                   let indicator_as_tensor = L.build_call index_get_int [|tensor; indicator|] "indicator_as_tensor" body_builder in
-                                  (* ignore(L.build_call print_int [| L.const_int int_t 4 |] "" pred_builder); *)
                                   ignore(L.build_store indicator_as_tensor str1ptr body_builder);
                                   let local_namespace = List.fold_left stmt local_namespace ss1 in
                                   ignore(add_terminal local_namespace.builder (L.build_br pred_bb));
@@ -616,13 +590,15 @@ let translate (spes,sstmts) =
                                   {symbol_table = the_namespace.symbol_table; function_table = the_namespace.function_table; func = the_namespace.func; builder = builder; global = the_namespace.global; env = the_namespace.env}
     | SReturn(se1) -> ignore(L.build_ret (genExpr the_namespace se1) the_namespace.builder); the_namespace
     | SPEInvoke(str1) -> {symbol_table = the_namespace.symbol_table; function_table = the_namespace.function_table; func = the_namespace.func; builder = the_namespace.builder; global = the_namespace.global; env = str1}
-    | SPEEnd(str1) -> {symbol_table = the_namespace.symbol_table; function_table = the_namespace.function_table; func = the_namespace.func; builder = the_namespace.builder; global = the_namespace.global; env = "default"}
+    | SPEEnd(_) -> {symbol_table = the_namespace.symbol_table; function_table = the_namespace.function_table; func = the_namespace.func; builder = the_namespace.builder; global = the_namespace.global; env = "default"}
   
   and pedecl main_namespace (pename, pebody) =
       let map_value_helper bigname po_map_array idx (name, _) = 
         let fname = bigname ^ name in
         let tmp = L.build_struct_gep po_map_array idx "tmp" main_namespace.builder in
-        let ftmp = match (L.lookup_function fname the_module) with Some z-> z in
+        let ftmp = match (L.lookup_function fname the_module) with 
+                      Some z-> z 
+                    | _ -> raise (Failure("Bug"))in
         ignore(L.build_store ftmp tmp main_namespace.builder);
         idx+1
       in
@@ -637,7 +613,9 @@ let translate (spes,sstmts) =
         let po_reduce_id = poname ^ "reduce" in 
         let po_reduce = L.define_global po_reduce_id (L.const_pointer_null reduce_func_ptr_t) the_module in
         (* ignore(StringHash.add main_namespace.symbol_table po_reduce_id po_reduce); *)
-        let ftmp = match (L.lookup_function (poname ^ "reduce") the_module) with Some z-> z in
+        let ftmp = match (L.lookup_function (poname ^ "reduce") the_module) with 
+                    Some z-> z 
+                  | _ -> raise (Failure("Bug")) in
         ignore(L.build_store ftmp po_reduce main_namespace.builder);
         PO({
           funcnum = funcn;
@@ -654,7 +632,7 @@ let translate (spes,sstmts) =
         List.iter2 (set_localptr the_builder local_symbol_table) paras argv;
         let build_return b = L.build_ret (L.const_pointer_null i8ptr_t) b in
         let local_namespace = {symbol_table = local_symbol_table; function_table = local_function_table; func = the_function; builder = the_builder; global = false; env = "default"} in
-        let local_namespace = List.fold_left stmt local_namespace stmts in
+        ignore(List.fold_left stmt local_namespace stmts);
         ignore(add_terminal the_builder build_return); 
       in 
       let reduce_value_helper local_symbol_table the_builder reduce_array idx name = 
@@ -682,7 +660,7 @@ let translate (spes,sstmts) =
 
         let build_return b = L.build_ret (L.const_pointer_null i8ptr_t) b in
         let local_namespace = {symbol_table = local_symbol_table; function_table = local_function_table; func = the_function; builder = the_builder; global = false; env = "default"} in
-        let local_namespace = List.fold_left stmt local_namespace stmts in
+        ignore(List.fold_left stmt local_namespace stmts);
         ignore(add_terminal the_builder build_return);
       in
       let pogenerate pename pofunc =
