@@ -71,6 +71,15 @@ extern "C" void *cat(void *a, void *b, void *c)
     return (void *)fromTensor(cat_t(toTensor(x), toTensor(y), toTensor(z)));
 }
 
+/**
+ * sample: [[1.1,2.0],[3.5,4.2],[3.9, 0.6]] .* [[1.1,2.0],[3.5,4.2],[3.9, 0.6]]
+ * output:
+ *  1.2100   4.0000
+ *  12.2500  17.6400
+ *  15.2100   0.3600
+ *  [ CPUFloatType{3,2} ]
+ */
+
 torch::Tensor dotmul_t(const torch::Tensor &x_t, const torch::Tensor &y_t)
 {
     torch::Tensor z_t = x_t * y_t;
@@ -83,18 +92,21 @@ extern "C" void *dotmul(void *a, void *b)
     tensor *y = (tensor *)b;
 
     check(x->type == y->type, "Not consistent type\n");
-    check(x->ndim == y->ndim, "Not consistent dimension\n");
-    bool flag = true;
-    for (int i = 0; i < x->ndim; i++) {
-        if (x->dims[i] != y->dims[i]) {
-            flag = false;
-            break;
+    if (y->ndim != 0) {
+        check(x->ndim == y->ndim, "Not consistent dimension\n");
+        bool flag = true;
+        for (int i = 0; i < x->ndim; i++) {
+            if (x->dims[i] != y->dims[i]) {
+                flag = false;
+                break;
+            }
         }
+        check(flag == true, "Not consistent dimension\n");
     }
-    check(flag == true, "Not consistent dimension\n");
 
     return (void *)fromTensor(dotmul_t(toTensor(x), toTensor(y)));
 }
+
 
 torch::Tensor dotpow_t(const torch::Tensor &x_t, const torch::Tensor &y_t)
 {
@@ -476,11 +488,12 @@ torch::Tensor shape_t(const torch::Tensor &x_t)
     int64_t dim_tmp[size];
     for (int i = 0; i < size; i++){
         dim_tmp[i] = (int64_t)(a[i]);
+        std::cout << dim_tmp[i] << std::endl;
     }
     c10::IntArrayRef a_dim (size);
-    auto options = torch::TensorOptions().dtype(torch::kInt32);
+    auto options = torch::TensorOptions().dtype(torch::kInt64);
     torch::Tensor z_t = torch::from_blob(dim_tmp, a_dim, options);
-    return z_t.clone();
+    return z_t.toType(torch::kInt32).clone();
 }
 
 extern "C" void *shape(void *a)
@@ -559,4 +572,35 @@ extern "C" void *zeros(void *a)
     check(x->type == 0, "Not consistent type");
     check(x->ndim == 1 , "Dimension should be 1");
     return (void *)fromTensor(zeros_t(toTensor(x)));
+}
+
+torch::Tensor sum_t(const torch::Tensor &x_t)
+{
+    torch::Tensor z_t = torch::sum(x_t);
+    return z_t;
+}
+
+extern "C" void *sum(void *a)
+{
+    tensor *x = (tensor *)a;
+    return (void *)fromTensor(sum_t(toTensor(x)));
+}
+
+torch::Tensor ones_t(const torch::Tensor &x_t)
+{
+    int64_t size = x_t.sizes()[0];
+    std::vector<int64_t> dims;
+    for (int i = 0; i < size; i++) 
+        dims.push_back(x_t[i].item().to<int64_t>());
+    at::IntArrayRef ndims (dims);
+    torch::Tensor z_t = torch::ones(ndims);
+    return z_t.toType(torch::kInt32);
+}
+
+extern "C" void *ones(void *a)
+{
+    tensor *x = (tensor *)a;
+    check(x->type == 0, "Not consistent type");
+    check(x->ndim == 1 , "Dimension should be 1");
+    return (void *)fromTensor(ones_t(toTensor(x)));
 }
