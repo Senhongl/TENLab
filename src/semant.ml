@@ -72,6 +72,11 @@ let rec check_expr symbol_table function_table = function
              if StringHash.mem function_table id then (SVoidTup, SFId(id)) else raise (Failure("function " ^ id ^ " not defined"))
 | Binop(x1, bop, x2) -> (SVoidTup, SBinop(check_expr symbol_table function_table x1, bop, check_expr symbol_table function_table x2))
 | Unop(uop, x) -> (SVoidTup, SUnop(uop, check_expr symbol_table function_table x))
+| Range(x1, x2, x3) -> 
+  let x1_ = check_expr symbol_table function_table x1 in
+  let x2_ = check_expr symbol_table function_table x2 in 
+  let x3_ = check_expr symbol_table function_table x3 in
+    (SVoidTup, SRange(x1_, x2_, x3_))
 | Tensor(x) -> (match check_tensor(x) with 
   | (TensorTup(t, n, d::d_), y) -> (STensorTup(t, n, Array.of_list d_), STensor(y))
   | (_, _) -> raise (Failure( "ought not occur")))

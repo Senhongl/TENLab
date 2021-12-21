@@ -236,6 +236,10 @@ let translate (spes,sstmts) =
     L.function_type i8ptr_t [| i8ptr_t; i8ptr_t |] in
   let lessequal_func : L.llvalue = 
     L.declare_function "lessequal" lessequal_t the_module in
+  let range_t : L.lltype = 
+    L.function_type i8ptr_t [| i8ptr_t; i8ptr_t; i8ptr_t |] in
+  let range_func : L.llvalue = 
+    L.declare_function "range" range_t the_module in
   let print_t : L.lltype = 
     L.function_type void_t [| i8ptr_t |] in
   let print_func : L.llvalue = 
@@ -420,6 +424,11 @@ let translate (spes,sstmts) =
             L.build_call index_get [|sptr; xptr|] "access_tensor" the_namespace.builder
           )*)
       )
+    | (_, SRange(se1, se2, se3)) -> 
+              let se1_ = genExpr the_namespace se1 in 
+              let se2_ = genExpr the_namespace se2 in 
+              let se3_ = genExpr the_namespace se3 in 
+              L.build_call range_func [| se1_; se2_; se3_ |] "tmpOp" the_namespace.builder
     | (_, SPrint(se1)) -> let se1_ = genExpr the_namespace se1 in
                           L.build_call print_func [| se1_ |] "" the_namespace.builder
     | (_, SFuncCall(str1, se1)) -> let (the_function, the_builder) = StringHash.find the_namespace.function_table str1 in
