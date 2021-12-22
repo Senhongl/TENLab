@@ -5,6 +5,7 @@ torch::Dtype toType(const tensor * const a)
     switch (a->type) {
         case 0: return torch::kInt32;
         case 1: return torch::kFloat64;
+        case 4: return torch::kInt32;
 
         default: check(0, "Invalid type");
     }
@@ -25,6 +26,7 @@ int8_t typeSize(int8_t type)
     switch (type) {
         case 0: return sizeof(int);
         case 1: return sizeof(double);
+        case 4: return sizeof(int);
 
         default: check(0, "Invalid type");
     }

@@ -1,7 +1,7 @@
 #include "tensor.h"
 
 torch::Tensor index_get_t(const torch::Tensor &x_t, 
-    const c10::List<c10::optional<torch::Tensor>> &y_t)
+    const c10::ArrayRef<torch::indexing::TensorIndex> &y_t)
 {
     return x_t.index(y_t);
 }
@@ -14,7 +14,7 @@ tensor *index_get_v(tensor *x, tensor *y)
 
     tensor *index = ((tensor **)y->data)[0];
     tensor **data = (tensor **)x->data;
-    check(index->type == 0, "Index must be integer");
+    check(index->type == 0 || index->type == 4, "Index must be integer");
     int32_t *ind_data = (int32_t *)index->data;
 
     dim = index->ndim;
@@ -51,13 +51,19 @@ extern "C" void *index_get(void *tena, void *inda)
     if (tenx->type == 3)
         return (void *)index_get_v(tenx, indx);
 
-    c10::List<c10::optional<torch::Tensor>> indlist;
+    std::vector<torch::indexing::TensorIndex> tmplist;
 
     tensor **indices = (tensor **)indx->data;
     for (int i = 0; i < dim; i++) {
+        if (indices[i]->type == 4) {
+            tmplist.push_back(torch::indexing::Slice
+                (indices[i]->dims[1], indices[i]->dims[2], indices[i]->dims[3]));
+            continue;
+        }
         check(indices[i]->type == 0, "Index must be integer");
-        indlist.push_back(toTensor(indices[i]).to(torch::kInt64));
+        tmplist.push_back(toTensor(indices[i]).to(torch::kInt64));
     }
+    c10::ArrayRef<torch::indexing::TensorIndex> indlist(tmplist);
 
     return (void *)fromTensor(index_get_t(toTensor(tenx), indlist));
 }
@@ -87,7 +93,7 @@ extern "C" void *index_get_int(void *tena, int inda)
 }
 
 void index_put_t(torch::Tensor x_t, 
-    const c10::List<c10::optional<torch::Tensor>> &y_t, 
+    const c10::ArrayRef<torch::indexing::TensorIndex> &y_t, 
     torch::Tensor z_t)
 {
     x_t.index_put_(y_t, z_t);
@@ -136,13 +142,19 @@ extern "C" void index_put(void *tena, void *inda, void *ntena)
     if (tenx->type == 3)
         return index_put_v(tenx, indx, ntenx);
 
-    c10::List<c10::optional<torch::Tensor>> indlist;
+    std::vector<torch::indexing::TensorIndex> tmplist;
 
     tensor **indices = (tensor **)indx->data;
     for (int i = 0; i < dim; i++) {
+        if (indices[i]->type == 4) {
+            tmplist.push_back(torch::indexing::Slice
+                (indices[i]->dims[1], indices[i]->dims[2], indices[i]->dims[3]));
+            continue;
+        }
         check(indices[i]->type == 0, "Index must be integer");
-        indlist.push_back(toTensor(indices[i]).to(torch::kInt64));
+        tmplist.push_back(toTensor(indices[i]).to(torch::kInt64));
     }
+    c10::ArrayRef<torch::indexing::TensorIndex> indlist(tmplist);
 
     index_put_t(toTensor(tenx), indlist, toTensor(ntenx));
 }

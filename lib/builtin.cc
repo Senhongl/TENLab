@@ -466,7 +466,16 @@ extern "C" void *range(void *a, void *b, void *c)
     int indy = *(int *)y->data;
     int indz = *(int *)z->data;
 
-    return (void *)fromTensor(torch::arange(indx, indy, indz).to(torch::kInt32));
+    tensor *n = fromTensor(torch::arange(indx, indy, indz).to(torch::kInt32));
+    int len = n->dims[0];
+    free(n->dims);
+    n->dims = (int8_t *)malloc(n->ndim + 3);
+    n->dims[0] = len;
+    n->dims[1] = indx;
+    n->dims[2] = indy;
+    n->dims[3] = indz;
+    n->type = 4;
+    return (void *)n;
 }
 
 torch::Tensor shape_t(const torch::Tensor &x_t)
