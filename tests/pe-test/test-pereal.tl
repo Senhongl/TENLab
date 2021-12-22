@@ -17,9 +17,8 @@ parallel_define fast_add {
 }
 
 
-z = 20;
-a = zeros([20])+5;
-b = zeros([20])+5;
+a = zeros([20]);
+b = ones([20]);
 using fast_add;
 c = a+b;
 print(c);
