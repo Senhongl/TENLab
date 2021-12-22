@@ -1,7 +1,8 @@
 .PHONY: test
 test: all generate.sh test.sh
-	./generate.sh ./tests/*.tl
-	./test.sh ./tests/*.tl
+	./generate.sh ./tests/*-test/test-*.tl
+	./test.sh ./tests/*-test/test-*.tl
+	./generate.sh ./tests/fails/fail-*.tl
 
 .PHONY: all
 all: tenlab.native
