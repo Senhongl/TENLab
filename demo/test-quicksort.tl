@@ -5,8 +5,8 @@ def partition(A, p, r) {
     n = int_of((n[0]+1.) .* float_of(r) .* 10.);
     n = (n % (r - p + 1)) + p;
     t = A[n];
-    A[r] = A[n];
-    A[n] = t;
+    A[n] = A[r];
+    A[r] = t;
     x = A[r];
     i = p - 1;
     for (j in p:r:1) {
@@ -24,6 +24,7 @@ def partition(A, p, r) {
 }
 
 def quicksort(A, p, r) {
+    q = 0;
     if (p < r) {
         q = partition(A, p, r);
         quicksort(A, p, q-1);
