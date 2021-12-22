@@ -72,10 +72,8 @@ extern "C" void *index_get_int(void *tena, int inda)
 {
     tensor *indx = (tensor *)malloc(sizeof(tensor));
     indx->type = 0;
-    indx->ndim = 1;
-    indx->dims = (int64_t *)malloc(sizeof(int64_t));
-    indx->dims[0] = 1;
-
+    indx->ndim = 0;
+    indx->dims = NULL;
     indx->data = (void *) malloc(sizeof(int));
     memcpy(indx->data, &inda, sizeof(int));
     
