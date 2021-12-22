@@ -505,7 +505,7 @@ extern "C" void *range(void *a, void *b, void *c)
     tensor *n = fromTensor(torch::arange(indx, indy, indz).to(torch::kInt32));
     int len = n->dims[0];
     free(n->dims);
-    n->dims = (int8_t *)malloc(n->ndim + 3);
+    n->dims = (int64_t *)malloc(n->ndim + 3);
     n->dims[0] = len;
     n->dims[1] = indx;
     n->dims[2] = indy;

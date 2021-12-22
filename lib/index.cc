@@ -36,7 +36,7 @@ tensor *index_get_v(tensor *x, tensor *y)
     tensor *ret_ten = (tensor *)malloc(sizeof(tensor));
     ret_ten->type = 3;
     ret_ten->ndim = 1;
-    ret_ten->dims = (int8_t *)malloc(sizeof(int8_t));
+    ret_ten->dims = (int64_t *)malloc(sizeof(int64_t));
     ret_ten->dims[0] = numInd;
     ret_ten->data = (void *)ret_data;
     return ret_ten;
@@ -73,7 +73,7 @@ extern "C" void *index_get_int(void *tena, int inda)
     tensor *indx = (tensor *)malloc(sizeof(tensor));
     indx->type = 0;
     indx->ndim = 1;
-    indx->dims = (int8_t *)malloc(sizeof(int8_t));
+    indx->dims = (int64_t *)malloc(sizeof(int64_t));
     indx->dims[0] = 1;
 
     indx->data = (void *) malloc(sizeof(int));
@@ -84,7 +84,7 @@ extern "C" void *index_get_int(void *tena, int inda)
     tmp[0] = indx;
     indx2->type = 3;
     indx2->ndim = 1;
-    indx2->dims = (int8_t *)malloc(sizeof(int8_t));
+    indx2->dims = (int64_t *)malloc(sizeof(int64_t));
     indx2->dims[0] = 1;
 
     indx2->data = (void *)tmp;

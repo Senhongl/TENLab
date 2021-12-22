@@ -124,10 +124,10 @@ let translate (spes,sstmts) =
 
     (* store dims *)
     let size = Array.length dims in
-    let dimsptr = L.build_malloc (L.array_type i8_t size) "dims" the_namespace.builder in
+    let dimsptr = L.build_malloc (L.array_type i64_t size) "dims" the_namespace.builder in
     let dimsptr_as_i8ptr = L.build_bitcast dimsptr i8ptr_t "dims_as_i8ptr" the_namespace.builder in
     let store_dims dim idx = 
-      let gep_addr = L.build_gep dimsptr [|L.const_int i8_t 0; L.const_int i8_t idx|] "elmptr" the_namespace.builder in
+      let gep_addr = L.build_gep dimsptr [|L.const_int i64_t 0; L.const_int i64_t idx|] "elmptr" the_namespace.builder in
       ignore(L.build_store dim gep_addr the_namespace.builder);
     in
     ignore(List.iter2 store_dims (Array.to_list dims) (List.init size (fun i -> i)));
@@ -430,14 +430,14 @@ let translate (spes,sstmts) =
       ) [| se1_ |] "tmpOp" the_namespace.builder
     | (STensorTup(t, n, d), STensor(y)) ->
         (match t with 
-          INT_Tensor -> build_tensor the_namespace int_t int_t (gen_value i8_t 0) (gen_value i8_t n) (gen_dim i8_t d) (gen_array int_t y)
-        | FLOAT_Tensor -> build_tensor the_namespace float_t i64_t (gen_value i8_t 1) (gen_value i8_t n) (gen_dim i8_t d) (gen_array float_t y)
+          INT_Tensor -> build_tensor the_namespace int_t int_t (gen_value i8_t 0) (gen_value i8_t n) (gen_dim i64_t d) (gen_array int_t y)
+        | FLOAT_Tensor -> build_tensor the_namespace float_t i64_t (gen_value i8_t 1) (gen_value i8_t n) (gen_dim i64_t d) (gen_array float_t y)
         )
-    | (_, SStringLit(s)) -> build_tensor the_namespace i8_t i8_t (gen_value i8_t 2) (gen_value i8_t 1) (gen_dim i8_t [| String.length s |]) (gen_char i8_t (Array.of_seq(String.to_seq s)))
-    | (_, SEmptyTensor) -> build_tensor the_namespace i8_t i8_t (gen_value i8_t 21) (gen_value i8_t 0) (gen_dim i8_t [||]) (gen_dim i8_t [||])
+    | (_, SStringLit(s)) -> build_tensor the_namespace i8_t i8_t (gen_value i8_t 2) (gen_value i8_t 1) (gen_dim i64_t [| String.length s |]) (gen_char i8_t (Array.of_seq(String.to_seq s)))
+    | (_, SEmptyTensor) -> build_tensor the_namespace i8_t i8_t (gen_value i8_t 21) (gen_value i8_t 0) (gen_dim i64_t [||]) (gen_dim i8_t [||])
     | (_, SVtensor(x)) -> 
       let x_ = Array.of_list(List.map (genExpr the_namespace) x) in
-            let dims = gen_dim i8_t [|Array.length(x_)|] in
+            let dims = gen_dim i64_t [|Array.length(x_)|] in
             let data = x_ in
               build_tensor the_namespace i8ptr_t i64_t (gen_value i8_t 3) (gen_value i8_t 1) dims data 
       (*let rec gen_vartensor = function
@@ -462,7 +462,7 @@ let translate (spes,sstmts) =
         Identifier(id) -> L.build_load (lookup id the_namespace) id the_namespace.builder
       | IdentifierInd(s, x) -> 
         let x_ = Array.of_list(List.map (genExpr the_namespace) x) in
-            let dims = gen_dim i8_t [|Array.length(x_)|] in
+            let dims = gen_dim i64_t [|Array.length(x_)|] in
             let data = x_ in
             let xptr = build_tensor the_namespace i8ptr_t i64_t (gen_value i8_t 3) (gen_value i8_t 1) dims data in
             let sptr = L.build_load (lookup s the_namespace) s the_namespace.builder in
@@ -547,7 +547,7 @@ let translate (spes,sstmts) =
             | IdentifierInd(s, x) ->
                           let rhs = genExpr the_namespace se1 in
                           let x_ = Array.of_list(List.map (genExpr the_namespace) x) in
-                            let dims = gen_dim i8_t [|Array.length(x_)|] in
+                            let dims = gen_dim i64_t [|Array.length(x_)|] in
                             let data = x_ in
                             let xptr = build_tensor the_namespace i8ptr_t i64_t (gen_value i8_t 3) (gen_value i8_t 1) dims data in
                             let sptr = L.build_load (lookup s the_namespace) s the_namespace.builder in

@@ -38,7 +38,7 @@ torch::Tensor toTensor(const tensor * const a)
 
     dim_tmp = new int64_t[a->ndim];
     for (int i = 0; i < a->ndim; i++)
-        dim_tmp[i] = (int64_t)(a->dims[i]);
+        dim_tmp[i] = a->dims[i];
     c10::IntArrayRef a_dim (dim_tmp, dim_tmp+a->ndim);
 
     torch::Tensor a_t = torch::from_blob(a->data, a_dim, toType(a));
@@ -55,9 +55,9 @@ tensor *fromTensor(const torch::Tensor &a_t)
     a->type = fromType(a_t.scalar_type());
     a->ndim = (int8_t)a_t.dim();
 
-    a->dims = (int8_t *)malloc(sizeof(int8_t)*a->ndim);
+    a->dims = (int64_t *)malloc(sizeof(int64_t)*a->ndim);
     for (int i = 0; i < a->ndim; i++)
-        a->dims[i] = (int8_t)a_t.size(i);
+        a->dims[i] = a_t.size(i);
 
     unsigned int eleBytes = typeSize(a->type) * torch::numel(a_t);
     a->data = malloc(eleBytes);

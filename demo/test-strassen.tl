@@ -70,9 +70,9 @@ parallel_define Strassen {
 }
 
 
-a = [[2,1],[5,4]];
-b = [[9,2],[3,9]];
-using Strassen;
+a = zeros([4096, 4096]);
+b = ones([4096, 4096]);
+# using Strassen;
 c = a*b;
 print(c);
 

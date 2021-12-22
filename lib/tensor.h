@@ -24,7 +24,7 @@ typedef struct tensor
 {
     int8_t type;
     int8_t ndim;
-    int8_t *dims;
+    int64_t *dims;
     void *data;
     int8_t rc;
 } tensor;
