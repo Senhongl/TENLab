@@ -70,11 +70,11 @@ parallel_define Strassen {
 }
 
 
-a = zeros([4096, 4096]);
-b = ones([4096, 4096]);
-# using Strassen;
+a = zeros([3000, 3000]);
+b = ones([3000, 3000]);
+using Strassen;
 c = a*b;
-print(c);
+print("done");
 
 
 
