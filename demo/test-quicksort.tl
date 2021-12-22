@@ -1,4 +1,4 @@
-A = [5,3,9,6,3,2,1,7,8,4];
+a = [5,3,9,6,3,2,1,7,8,4];
     
 def partition(A, p, r) {
     n = rand([1]);
@@ -33,5 +33,6 @@ def quicksort(A, p, r) {
     return 1;
 }
 
-quicksort(A, 0, 9);
-print(A);
+l = shape(a);
+quicksort(a, 0, l[0]-1);
+print(a);

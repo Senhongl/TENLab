@@ -543,6 +543,15 @@ torch::Tensor shape_t(const torch::Tensor &x_t)
 extern "C" void *shape(void *a)
 {
     tensor *x = (tensor *)a;
+    if (x->type == 3) {
+        tensor *ret = (tensor *)malloc(sizeof(tensor));
+        ret->type = 0;
+        ret->ndim = 0;
+        ret->dims = NULL;
+        ret->data = malloc(sizeof(int));
+        *(int *)(ret->data) = (int)(x->dims[0]);
+        return (void *)ret;
+    }
 
     return (void *)fromTensor(shape_t(toTensor(x)));
 }
