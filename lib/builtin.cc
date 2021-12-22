@@ -20,7 +20,7 @@ extern "C" void *add(void *a, void *b)
 torch::Tensor all_t(const torch::Tensor &x_t)
 {
     torch::Tensor a_t = torch::all(x_t);
-    return a_t;
+    return a_t.toType(torch::kInt32);
 }
 
 extern "C" void *all(void *a)
@@ -33,7 +33,7 @@ extern "C" void *all(void *a)
 torch::Tensor any_t(const torch::Tensor &x_t)
 {
     torch::Tensor a_t = torch::any(x_t);
-    return a_t;
+    return a_t.toType(torch::kInt32);
 }
 
 extern "C" void *any(void *a)
@@ -670,7 +670,7 @@ extern "C" void *tensor_log(void *a)
 
 torch::Tensor inverse_t(const torch::Tensor &x_t)
 {
-    return torch::inverse(x_t);
+    return torch::inverse(x_t.toType(torch::kFloat64));
 }
 
 extern "C" void *inverse(void *a)
