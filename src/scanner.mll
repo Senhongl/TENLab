@@ -77,6 +77,7 @@ rule tokenize = parse
 | "sum" { SUM }
 | "ones" { ONES }
 | "zeros" { ZEROS }
+| "rand" { RAND }
 | "int_of" { INT_OF }
 | "float_of" { FLOAT_OF }
 | "floor" { FLOOR }
@@ -85,10 +86,10 @@ rule tokenize = parse
 | "abs" { ABS }
 | "log" { LOG } 
 | "inverse" { INVERSE }
-| "solve" { SOLVE }
+(* | "solve" { SOLVE }
 | "svd" { SVD }
 | "eig" { EIG }
-| "eign" { EIGV }
+| "eign" { EIGV } *)
 | "print" { PRINT }
 | "shape" { SHAPE }
 | "cat" { CAT }

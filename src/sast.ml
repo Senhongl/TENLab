@@ -27,6 +27,7 @@ and sx =
 | SAll of sexpr
 | SSum of sexpr
 | SOnes of sexpr
+| SRand of sexpr
 | SZeros of sexpr
 | SLen of sexpr
 | SInt_Of of sexpr
@@ -37,10 +38,10 @@ and sx =
 | SAbs of sexpr
 | SLog of sexpr
 | SInverse of sexpr
-| SSolve of sexpr * sexpr
-| SSvd of sexpr
+(* | SSolve of sexpr * sexpr *)
+(* | SSvd of sexpr
 | SEig of sexpr
-| SEigv of sexpr
+| SEigv of sexpr *)
 | SFuncCall of string * sexpr list
 
 and sasexpr = 

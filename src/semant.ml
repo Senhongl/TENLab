@@ -97,6 +97,7 @@ let rec check_expr symbol_table function_table = function
 | Shape(e) -> (SVoidTup, SShape(check_expr symbol_table function_table e))
 | Zeros(e) -> (SVoidTup, SZeros(check_expr symbol_table function_table e))
 | Ones(e) -> (SVoidTup, SOnes(check_expr symbol_table function_table e))
+| Rand(e) -> (SVoidTup, SRand(check_expr symbol_table function_table e))
 | Sum(e) -> (SVoidTup, SSum(check_expr symbol_table function_table e))
 | Any(e) -> (SVoidTup, SAny(check_expr symbol_table function_table e))
 | All(e) -> (SVoidTup, SAll(check_expr symbol_table function_table e))

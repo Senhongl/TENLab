@@ -1,0 +1,7 @@
+ 1  2  3
+ 4  5  6
+[ CPUIntType{2,3} ]
+ 1  4
+ 2  5
+ 3  6
+[ CPUIntType{3,2} ]

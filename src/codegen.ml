@@ -271,7 +271,11 @@ let translate (spes,sstmts) =
   let ones_t : L.lltype = 
     L.function_type i8ptr_t [| i8ptr_t |] in
   let ones_func : L.llvalue = 
-    L.declare_function "ones" ones_t the_module in
+    L.declare_function "ones" ones_t the_module in  
+  let tensor_rand_t : L.lltype = 
+    L.function_type i8ptr_t [| i8ptr_t |] in
+  let tensor_rand_func : L.llvalue = 
+    L.declare_function "tensor_rand" tensor_rand_t the_module in
   let sum_t : L.lltype = 
     L.function_type i8ptr_t [| i8ptr_t |] in
   let sum_func : L.llvalue = 
@@ -492,6 +496,8 @@ let translate (spes,sstmts) =
                           L.build_call shape_func [| se1_ |] "shape" the_namespace.builder
     | (_, SOnes(se1)) -> let se1_ = genExpr the_namespace se1 in
                           L.build_call ones_func [| se1_ |] "ones" the_namespace.builder
+    | (_, SRand(se1)) -> let se1_ = genExpr the_namespace se1 in
+                          L.build_call tensor_rand_func [| se1_ |] "rand" the_namespace.builder
     | (_, SSum(se1)) -> let se1_ = genExpr the_namespace se1 in
                           L.build_call sum_func [| se1_ |] "sum" the_namespace.builder
     | (_, SAny(se1)) -> let se1_ = genExpr the_namespace se1 in

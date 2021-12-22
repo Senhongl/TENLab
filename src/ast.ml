@@ -46,6 +46,7 @@ type expr =
 | Sum of expr
 | Ones of expr
 | Zeros of expr
+| Rand of expr
 | Len of expr
 | Int_Of of expr
 | Float_Of of expr
@@ -55,10 +56,10 @@ type expr =
 | Abs of expr
 | Log of expr
 | Inverse of expr
-| Solve of expr * expr
-| Svd of expr
+(* | Solve of expr * expr *)
+(* | Svd of expr
 | Eig of expr
-| Eigv of expr
+| Eigv of expr *)
 
 | FuncCall of expr * expr list
 
