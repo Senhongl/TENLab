@@ -157,6 +157,15 @@ extern "C" void *equal(void *a, void *b)
         *(int *)(ret->data) = 0;
         return (void *)ret;
     }
+    if (x->type == 21) {
+        tensor *ret = (tensor *)malloc(sizeof(tensor));
+        ret->type = 0;
+        ret->ndim = 0;
+        ret->dims = NULL;
+        ret->data = malloc(sizeof(int));
+        *(int *)(ret->data) = 1;
+        return (void *)ret;
+    }
 
     return (void *)fromTensor(equal_t(toTensor(x), toTensor(y)));
 }
@@ -417,6 +426,15 @@ extern "C" void *notequal(void *a, void *b)
         *(int *)(ret->data) = 1;
         return (void *)ret;
     }
+    if (x->type == 21) {
+        tensor *ret = (tensor *)malloc(sizeof(tensor));
+        ret->type = 0;
+        ret->ndim = 0;
+        ret->dims = NULL;
+        ret->data = malloc(sizeof(int));
+        *(int *)(ret->data) = 0;
+        return (void *)ret;
+    }
     check(x->ndim == y->ndim, "Not consistent dimension\n");
     bool flag = true;
     for (int i = 0; i < x->ndim; i++) {
@@ -433,7 +451,12 @@ extern "C" void *notequal(void *a, void *b)
 void print_var(tensor *x)
 {
     if (x->type != 3) {
-        std::cout << toTensor(x) << std::endl;
+        if (x->type == 21)
+            printf("Nil\n");
+        else if (x->type == 2)
+            printf("%s\n", (char *)x->data);
+        else
+            std::cout << toTensor(x) << std::endl;
         return;
     }
     int8_t dim = x->dims[0], i;
@@ -453,9 +476,10 @@ extern "C" void print(void *a)
     if (x->type == 3) {
         print_var(x);
         printf("\n");
-    } else if (x->type == 2) {
+    } else if (x->type == 2)
         printf("%s\n", (char *)x->data);
-    }
+    else if (x->type == 21)
+        printf("Nil\n");
     else
         std::cout << toTensor(x) << std::endl;
 }

@@ -32,6 +32,7 @@ type expr =
 | Tensor of tensor
 | VarTs of expr list
 | ASexpr of asexpr
+| EmptyTensor
 | StringLit of string
 | Binop of expr * bop * expr
 | Unop of uop * expr
@@ -67,8 +68,7 @@ and asexpr =
 
 (* Tensor *)
 and tensor =
-  EmptyTensor
-| LRTensor of tensor
+  LRTensor of tensor
 | NPTensor of tensor
 | LRTensors of tensor * tensor
 | NPTensors of tensor * tensor

@@ -15,6 +15,7 @@ and sx =
 | SVtensor of sexpr list
 | SASexpr of sasexpr
 | SStringLit of string
+| SEmptyTensor
 | SBinop of sexpr * bop * sexpr
 | SUnop of uop * sexpr
 | SRange of sexpr * sexpr * sexpr

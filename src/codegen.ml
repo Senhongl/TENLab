@@ -434,6 +434,7 @@ let translate (spes,sstmts) =
         | FLOAT_Tensor -> build_tensor the_namespace float_t i64_t (gen_value i8_t 1) (gen_value i8_t n) (gen_dim i8_t d) (gen_array float_t y)
         )
     | (_, SStringLit(s)) -> build_tensor the_namespace i8_t i8_t (gen_value i8_t 2) (gen_value i8_t 1) (gen_dim i8_t [| String.length s |]) (gen_char i8_t (Array.of_seq(String.to_seq s)))
+    | (_, SEmptyTensor) -> build_tensor the_namespace i8_t i8_t (gen_value i8_t 21) (gen_value i8_t 0) (gen_dim i8_t [||]) (gen_dim i8_t [||])
     | (_, SVtensor(x)) -> 
       let x_ = Array.of_list(List.map (genExpr the_namespace) x) in
             let dims = gen_dim i8_t [|Array.length(x_)|] in

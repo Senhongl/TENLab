@@ -83,6 +83,7 @@ let rec check_expr symbol_table function_table = function
       let x_ = List.map (check_expr symbol_table function_table) x in
               (SVoidTup, SVtensor(x_))
 | StringLit(s) -> (SVoidTup, SStringLit(s))
+| EmptyTensor -> (SVoidTup, SEmptyTensor)
 | ASexpr(x) -> (match x with 
   | Identifier(id) -> if StringHash.mem function_table id then StringHash.remove function_table id;
               if StringHash.mem symbol_table id then (SVoidTup, SASexpr(Identifier(id)))

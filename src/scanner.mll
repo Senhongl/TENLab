@@ -69,6 +69,7 @@ rule tokenize = parse
 | "int" { INT }
 | "float" { FLOAT }
 | "var" { VAR }
+| "nil" { NIL }
 
 (* build-in function*)
 | "any" { ANY }
