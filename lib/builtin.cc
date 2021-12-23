@@ -496,6 +496,38 @@ extern "C" void print(void *a)
         std::cout << toTensor(x) << std::endl;
 }
 
+void PrintStuff( char to_print, int length ) {
+
+    // adjust buffer size as desired
+    char buffer[256];
+
+    // -1 for null terminator
+    if( length > sizeof(buffer)-1 ) length = sizeof(buffer)-1; 
+
+    // fill buffer with desired character
+    memset( buffer, to_print, length );
+
+    // add null terminator
+    buffer[length] = 0;
+
+    // print to output
+    printf("%s", buffer);
+}
+
+extern "C" void print_error(void *a, void *b)
+{
+    tensor *epoch = (tensor *)a;
+    int e = toTensor(epoch).item().to<int>();
+    printf("Training Epoch: %d    ", e);
+    printf("[");
+    PrintStuff('=', e * 2 + 1);
+    printf("]");
+    printf("\n");
+    printf("Mean Square Error: ");
+    tensor *x = (tensor *)b;
+    std::cout << toTensor(x).item().to<float>() << std::endl;
+}
+
 extern "C" void print_int(int a)
 {
     printf("%d\n", a);

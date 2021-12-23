@@ -239,6 +239,10 @@ let translate (spes,sstmts) =
     L.function_type void_t [| i8ptr_t |] in
   let print_func : L.llvalue = 
     L.declare_function "print" print_t the_module in
+  let print_error_t : L.lltype =
+    L.function_type void_t [| i8ptr_t; i8ptr_t |] in
+  let print_error_func : L.llvalue =
+    L.declare_function "print_error" print_error_t the_module in
   let logicaland_t : L.lltype = 
     L.function_type i8ptr_t [| i8ptr_t; i8ptr_t |] in
   let logicaland_func : L.llvalue = 
@@ -490,6 +494,9 @@ let translate (spes,sstmts) =
               L.build_call range_func [| se1_; se2_; se3_ |] "tmpOp" the_namespace.builder
     | (_, SPrint(se1)) -> let se1_ = genExpr the_namespace se1 in
                           L.build_call print_func [| se1_ |] "" the_namespace.builder
+    | (_, SPrint_error(se1, se2)) -> let se1_ = genExpr the_namespace se1 in
+                                     let se2_ = genExpr the_namespace se2 in
+                                      L.build_call print_error_func [| se1_; se2_ |] "" the_namespace.builder 
     | (_, SZeros(se1)) -> let se1_ = genExpr the_namespace se1 in
                           L.build_call zeros_func [| se1_ |] "zeros" the_namespace.builder
     | (_, SShape(se1)) -> let se1_ = genExpr the_namespace se1 in

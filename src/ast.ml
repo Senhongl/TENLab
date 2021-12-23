@@ -39,6 +39,7 @@ type expr =
 | Range of expr * expr * expr
 (* Built-in functions *)
 | Print of expr
+| Print_error of expr * expr
 | Shape of expr
 | Cat of expr * expr * expr
 | Any of expr

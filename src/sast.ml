@@ -21,6 +21,7 @@ and sx =
 | SRange of sexpr * sexpr * sexpr
 (* Built-in functions *)
 | SPrint of sexpr
+| SPrint_error of sexpr * sexpr
 | SShape of sexpr
 | SCat of sexpr * sexpr * sexpr
 | SAny of sexpr

@@ -16,7 +16,7 @@
 // keywords
 // TODO: support special keywords, e.g., read, print, shape, cat
 // build-in functions
-%token ANY ALL SUM ONES ZEROS RAND LEN INT_OF FLOAT_OF FLOOR CEIL ROUND ABS LOG INVERSE PRINT SHAPE CAT
+%token ANY ALL SUM ONES ZEROS RAND LEN INT_OF FLOAT_OF FLOOR CEIL ROUND ABS LOG INVERSE PRINT SHAPE CAT PRINT_ERROR
 /* %token SOLVE SVD EIG EIGV  */
 
 // TODO: string or char?
@@ -244,6 +244,7 @@ expr:
 // built-in functions
 // TODO: necessary to do the syntax check?
 | PRINT LEFT_PARENTHESIS expr RIGHT_PARENTHESIS { Print($3) }
+| PRINT_ERROR LEFT_PARENTHESIS expr COMMA expr RIGHT_PARENTHESIS { Print_error($3, $5) }
 | SHAPE LEFT_PARENTHESIS expr RIGHT_PARENTHESIS { Shape($3) }
 | CAT LEFT_PARENTHESIS expr COMMA expr COMMA expr RIGHT_PARENTHESIS { Cat($3, $5, $7) }
 | ANY LEFT_PARENTHESIS expr RIGHT_PARENTHESIS { Any($3) }

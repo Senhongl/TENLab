@@ -91,6 +91,7 @@ rule tokenize = parse
 | "eig" { EIG }
 | "eign" { EIGV } *)
 | "print" { PRINT }
+| "print_error" { PRINT_ERROR }
 | "shape" { SHAPE }
 | "cat" { CAT }
 (* Parallel Environment keywords *)
